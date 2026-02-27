@@ -36,7 +36,7 @@ export default function Navbar({ currentPage, onNavigate }) {
           boxShadow: '0 4px 14px rgba(255,107,0,0.35)',
         }}>R</div>
         <div>
-          <div style={{ color: theme.text, fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, letterSpacing: 2, lineHeight: 1, transition: 'color 0.3s' }}>RETAILCO</div>
+          <div style={{ color: theme.text, fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, letterSpacing: 2, lineHeight: 1, transition: 'color 0.3s' }}>RETAIL</div>
           <div style={{ color: '#FF6B00', fontSize: 9, letterSpacing: 3, textTransform: 'uppercase', fontFamily: 'monospace' }}>LOYALTY SYSTEM</div>
         </div>
       </div>
