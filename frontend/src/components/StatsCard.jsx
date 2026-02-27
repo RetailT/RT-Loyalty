@@ -12,7 +12,7 @@ export default function StatsCard({ title, value, subtitle, icon, color = '#FF6B
       style={{
         background: theme.bgCard,
         border: `1px solid ${hovered ? color + '55' : theme.border}`,
-        borderRadius: 16, padding: 24,
+        borderRadius: 16, padding: 20,
         position: 'relative', overflow: 'hidden',
         transform: hovered ? 'translateY(-2px)' : 'translateY(0)',
         boxShadow: hovered ? `0 8px 32px ${color}18` : theme.shadow,
@@ -27,13 +27,21 @@ export default function StatsCard({ title, value, subtitle, icon, color = '#FF6B
       }} />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <div style={{ color: theme.textMuted, fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', fontFamily: "'Space Mono', monospace", marginBottom: 8 }}>
+          <div style={{
+            color: theme.textMuted, fontSize: 10, letterSpacing: 2,
+            textTransform: 'uppercase', fontFamily: "'Space Mono', monospace", marginBottom: 8,
+          }}>
             {title}
           </div>
-          <div style={{ color: theme.text, fontSize: 32, fontWeight: 800, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1, lineHeight: 1 }}>
+          <div style={{
+            color: theme.text, fontSize: 30, fontWeight: 900,
+            fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1, lineHeight: 1,
+          }}>
             {value}
           </div>
-          {subtitle && <div style={{ color: theme.textFaint, fontSize: 11, marginTop: 6 }}>{subtitle}</div>}
+          {subtitle && (
+            <div style={{ color: theme.textFaint, fontSize: 11, marginTop: 6 }}>{subtitle}</div>
+          )}
           {trend && (
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 8,
@@ -48,11 +56,11 @@ export default function StatsCard({ title, value, subtitle, icon, color = '#FF6B
           )}
         </div>
         <div style={{
-          width: 48, height: 48,
+          width: 44, height: 44,
           background: `${color}18`,
           border: `1px solid ${color}30`,
-          borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 22,
+          borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 20,
         }}>
           {icon}
         </div>

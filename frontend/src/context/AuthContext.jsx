@@ -1,31 +1,50 @@
-import React, { createContext, useContext, useState } from 'react';
-import { mockUser } from '../utils/mockData';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
-const AuthContext = createContext(null);
+const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+  const [user, setUser]   = useState(null);
+  const [token, setToken] = useState(() => localStorage.getItem('loyalty_token'));
 
-  const login = async (email, password) => {
-    await new Promise((r) => setTimeout(r, 1200));
-    if (email && password.length >= 4) {
-      setUser(mockUser);
-      return true;
+  useEffect(() => {
+    if (token && !user) {
+      // In production: fetch /api/customer/me with token
+      setUser(MOCK_USER);
     }
-    return false;
+  }, [token]);
+
+  const login = (userData, jwt) => {
+    setUser(userData);
+    setToken(jwt);
+    localStorage.setItem('loyalty_token', jwt);
   };
 
-  const logout = () => setUser(null);
+  const logout = () => {
+    setUser(null);
+    setToken(null);
+    localStorage.removeItem('loyalty_token');
+  };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, logout }}>
+    <AuthContext.Provider value={{ user, token, login, logout, isLoggedIn: !!token }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
-export function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
-  return ctx;
-}
+export const useAuth = () => useContext(AuthContext);
+
+// Mock user — replace with API call
+const MOCK_USER = {
+  name:                 'Kavinda Perera',
+  mobile_number:        '0712345678',
+  email:                'kavinda@gmail.com',
+  date_of_birth:        '1992-05-15',
+  join_date:            '2023-01-10',
+  current_points:       3450,
+  lifetime_points:      12800,
+  tier_level:           'Silver',
+  tier_expiry:          '2025-12-31',
+  status:               'active',
+  last_transaction_date:'2024-12-18',
+};

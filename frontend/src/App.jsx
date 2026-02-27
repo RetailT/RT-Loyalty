@@ -1,37 +1,71 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { ThemeProvider }    from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { ThemeProvider, useTheme } from './context/ThemeContext';
-import LoginPage     from './pages/LoginPage';
-import DashboardPage from './pages/DashboardPage';
-import CustomersPage from './pages/CustomersPage';
-import QRScannerPage from './pages/QRScannerPage';
-import ReportsPage   from './pages/ReportsPage';
-import Navbar        from './components/Navbar';
+import useResponsive        from './hooks/useResponsive';
+
+import Navbar       from './components/Navbar';
+import Footer       from './components/Footer';
+import BottomNav    from './components/BottomNav';
+
+import LandingPage      from './pages/LandingPage';
+import LoginPage        from './pages/LoginPage';
+import DashboardPage    from './pages/DashboardPage';
+import TransactionsPage from './pages/TransactionsPage';
+import RewardsPage      from './pages/RewardsPage';
+import ProfilePage      from './pages/ProfilePage';
+import TiersPage        from './pages/TiersPage';
+
+const PROTECTED = ['dashboard','transactions','rewards','profile','tiers'];
 
 function AppContent() {
-  const { isAuthenticated } = useAuth();
-  const { theme } = useTheme();
-  const [currentPage, setCurrentPage] = useState('dashboard');
+  const [page, setPage] = useState('landing');
+  const { isLoggedIn }  = useAuth();
+  const { isMobile }    = useResponsive();
 
-  if (!isAuthenticated) {
-    return <LoginPage onSuccess={() => setCurrentPage('dashboard')} />;
-  }
+  const navigate = (p) => {
+    setPage(p);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Redirect protected pages if not logged in
+  useEffect(() => {
+    if (PROTECTED.includes(page) && !isLoggedIn) {
+      setPage('login');
+    }
+  }, [page, isLoggedIn]);
+
+  // Auto-redirect to dashboard after login
+  useEffect(() => {
+    if (isLoggedIn && (page === 'login' || page === 'landing')) {
+      setPage('dashboard');
+    }
+  }, [isLoggedIn]);
 
   const renderPage = () => {
-    switch (currentPage) {
-      case 'dashboard': return <DashboardPage onNavigate={setCurrentPage} />;
-      case 'customers': return <CustomersPage />;
-      case 'scan':      return <QRScannerPage />;
-      case 'reports':   return <ReportsPage />;
-      default:          return <DashboardPage onNavigate={setCurrentPage} />;
+    switch (page) {
+      case 'landing':      return <LandingPage      onNavigate={navigate} />;
+      case 'login':        return <LoginPage         onNavigate={navigate} />;
+      case 'dashboard':    return <DashboardPage     onNavigate={navigate} />;
+      case 'transactions': return <TransactionsPage  onNavigate={navigate} />;
+      case 'rewards':      return <RewardsPage        onNavigate={navigate} />;
+      case 'profile':      return <ProfilePage        onNavigate={navigate} />;
+      case 'tiers':        return <TiersPage          onNavigate={navigate} />;
+      default:             return <LandingPage        onNavigate={navigate} />;
     }
   };
 
+  const showFooter  = !isLoggedIn;
+  const showBottomNav = isLoggedIn && isMobile;
+
   return (
-    <div style={{ minHeight: '100vh', background: theme.bg, transition: 'background 0.3s' }}>
-      <Navbar currentPage={currentPage} onNavigate={setCurrentPage} />
-      <main>{renderPage()}</main>
-    </div>
+    <>
+      <Navbar currentPage={page} onNavigate={navigate} />
+      <main style={{ minHeight: 'calc(100vh - 64px)' }}>
+        {renderPage()}
+      </main>
+      {showFooter && <Footer onNavigate={navigate} />}
+      {showBottomNav && <BottomNav currentPage={page} onNavigate={navigate} />}
+    </>
   );
 }
 

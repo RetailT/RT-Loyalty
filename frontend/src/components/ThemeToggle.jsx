@@ -1,26 +1,33 @@
 import React from 'react';
 import { useTheme } from '../context/ThemeContext';
 
-export default function ThemeToggle() {
+export default function ThemeToggle({ compact = false }) {
   const { mode, toggle, theme } = useTheme();
   const isDark = mode === 'dark';
 
-  return (
-    <button
-      onClick={toggle}
-      title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
+  if (compact) {
+    return (
+      <button onClick={toggle} title={isDark ? 'Switch to Light' : 'Switch to Dark'} style={{
         background: isDark ? '#1a1a1a' : '#f0f0f0',
         border: `1px solid ${theme.border}`,
-        borderRadius: 40,
-        padding: '5px 14px 5px 6px',
-        cursor: 'pointer',
-        transition: 'all 0.3s',
-      }}
-    >
+        borderRadius: 8, width: 34, height: 34,
+        cursor: 'pointer', fontSize: 15,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        transition: 'all 0.2s',
+      }}>
+        {isDark ? '☀️' : '🌙'}
+      </button>
+    );
+  }
+
+  return (
+    <button onClick={toggle} title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'} style={{
+      display: 'flex', alignItems: 'center', gap: 8,
+      background: isDark ? '#1a1a1a' : '#f0f0f0',
+      border: `1px solid ${theme.border}`,
+      borderRadius: 40, padding: '5px 14px 5px 6px',
+      cursor: 'pointer', transition: 'all 0.3s',
+    }}>
       <div style={{
         width: 36, height: 20,
         background: isDark ? '#FF6B00' : '#d0d0d0',
