@@ -158,7 +158,7 @@ export default function LoginPage({ onNavigate }) {
 
           {/* Logo */}
           <div style={{ textAlign: 'center', marginBottom: 24 }}>
-            <div style={{ width: 56, height: 56, margin: '0 auto 14px', background: 'linear-gradient(135deg,#FF6B00,#FF8C00)', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 900, color: '#fff', boxShadow: '0 8px 24px rgba(255,107,0,0.4)', fontFamily: "'Bebas Neue',sans-serif", letterSpacing: 1 }}>R</div>
+            <div style={{ width: 56, height: 56, margin: '0 auto 14px', background: 'linear-gradient(135deg,#FF6B00,#FF8C00)', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 900, color: '#fff', boxShadow: '0 8px 24px rgba(255,107,0,0.4)', fontFamily: "'Bebas Neue',sans-serif", letterSpacing: 1 }}>RT</div>
             <h1 style={{ color: theme.text, fontFamily: "'Bebas Neue',sans-serif", fontSize: 26, letterSpacing: 2, marginBottom: 4 }}>WELCOME BACK</h1>
             <p style={{ color: theme.textMuted, fontSize: 12, fontFamily: "'Space Mono',monospace" }}>Sign in to your loyalty account</p>
           </div>

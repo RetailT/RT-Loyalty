@@ -34,7 +34,7 @@ export default function Navbar({ currentPage, onNavigate }) {
       }}>
         {/* Logo */}
         <div style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer' }} onClick={() => handleNav(user ? 'dashboard' : 'landing')}>
-          <div style={{ width:34, height:34, background:'linear-gradient(135deg,#FF6B00,#FF8C00)', borderRadius:9, display:'flex', alignItems:'center', justifyContent:'center', fontSize:15, fontWeight:900, color:'#fff', boxShadow:'0 4px 12px rgba(255,107,0,0.35)', flexShrink:0 }}>R</div>
+          <div style={{ width:34, height:34, background:'linear-gradient(135deg,#FF6B00,#FF8C00)', borderRadius:9, display:'flex', alignItems:'center', justifyContent:'center', fontSize:15, fontWeight:900, color:'#fff', boxShadow:'0 4px 12px rgba(255,107,0,0.35)', flexShrink:0 }}>RT</div>
           <div>
             <div style={{ color:theme.text, fontFamily:"'Bebas Neue',sans-serif", fontSize:isMobile?16:18, letterSpacing:2, lineHeight:1 }}>RETAIL</div>
             {!isMobile && <div style={{ color:'#FF6B00', fontSize:8, letterSpacing:3, textTransform:'uppercase', fontFamily:'monospace' }}>LOYALTY PORTAL</div>}
