@@ -16,6 +16,22 @@ export function AuthProvider({ children }) {
 
   // ── Logout ────────────────────────────────────────────────
   const logout = useCallback((expired = false) => {
+    const reason = expired ? 'Session expired (30min inactivity)' : 'User logged out';
+    console.log(`🔴 ${reason} — ${new Date().toLocaleTimeString()}`);
+
+    // Notify backend
+    const tk = localStorage.getItem('loyalty_token');
+    if (tk) {
+      try {
+        const payload = JSON.parse(atob(tk.split('.')[1]));
+        fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/portal/auth/logout`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: payload.name, email: payload.email, reason }),
+        }).catch(() => {});
+      } catch {}
+    }
+
     setUser(null);
     setToken(null);
     localStorage.removeItem('loyalty_token');
@@ -111,7 +127,7 @@ export function AuthProvider({ children }) {
             <div style={{ width:56, height:56, background:'linear-gradient(135deg,#FF6B00,#FF8C00)', borderRadius:14, display:'flex', alignItems:'center', justifyContent:'center', fontSize:26, margin:'0 auto 16px' }}>⏱</div>
             <h2 style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:24, letterSpacing:2, color:'#111', marginBottom:8 }}>SESSION EXPIRED</h2>
             <p style={{ color:'#666', fontSize:13, lineHeight:1.7, marginBottom:24 }}>
-              <br/>Please log in again to continue.
+              You've been inactive for 30 minutes.<br/>Please log in again to continue.
             </p>
             <button
               onClick={() => setSessionExpired(false)}
