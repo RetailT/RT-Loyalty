@@ -49,14 +49,13 @@ const sendOtp = async (req, res) => {
     const sendTo  = (email || cust.EMAIL || '').trim().toLowerCase();
     const otp     = generateOTP();
     const expires = new Date(Date.now() + OTP_TTL_MIN * 60000);
-    const isNew   = 0;
 
     // Upsert OTP session keyed by EMAIL
     await pool.request()
       .input('email',   sql.NVarChar, sendTo)
       .input('otp',     sql.NVarChar, otp)
       .input('expires', sql.DateTime, expires)
-      .input('isnew',   sql.Bit,      isNew)
+      .input('isnew',   sql.Bit,      0)
       .query(`
         IF EXISTS (SELECT 1 FROM tb_OTP_SESSIONS WHERE EMAIL = @email)
           UPDATE tb_OTP_SESSIONS
@@ -74,7 +73,6 @@ const sendOtp = async (req, res) => {
         console.log('✅ OTP email sent to', sendTo);
       } catch (e) {
         console.error('❌ OTP email failed:', e.message);
-        console.error(e); // full error object
       }
     }
 
@@ -103,7 +101,6 @@ const verifyOtp = async (req, res) => {
     const normalEmail = email.trim().toLowerCase();
     const pool        = await getLoyaltyPool();
 
-    // Check OTP session
     const sessionResult = await pool.request()
       .input('email', sql.NVarChar, normalEmail)
       .input('otp',   sql.NVarChar, String(otp).trim())
@@ -129,13 +126,12 @@ const verifyOtp = async (req, res) => {
       .input('email2', sql.NVarChar, normalEmail)
       .query('UPDATE tb_OTP_SESSIONS SET IS_USED = 1 WHERE EMAIL = @email2');
 
-    // Get customer
     const custResult = await pool.request()
       .input('email3', sql.NVarChar, normalEmail)
       .query(`
         SELECT TOP 1 IDX, NAME, EMAIL, PHONE, MEMBERSHIP_ID,
                AVAILABLE_POINTS, TOTAL_POINTS, MEMBERSHIP_TIER,
-               STATUS, JOIN_DATE, QR_CODE
+               STATUS, JOIN_DATE, QR_CODE, TIER_EXPIRY
         FROM tb_CUSTOMERS
         WHERE LOWER(EMAIL) = @email3
       `);
@@ -145,10 +141,11 @@ const verifyOtp = async (req, res) => {
 
     const cust = custResult.recordset[0];
 
-    // Update last activity
     await pool.request()
       .input('custid', sql.Numeric, cust.IDX)
       .query('UPDATE tb_CUSTOMERS SET LAST_ACTIVITY = CAST(GETDATE() AS DATE), UPDATED_AT = GETDATE() WHERE IDX = @custid');
+
+    console.log(`✅ Login — ${cust.NAME} (${cust.EMAIL}) — ${new Date().toLocaleTimeString()}`);
 
     const token = signToken({
       custid:       cust.IDX,
@@ -171,6 +168,7 @@ const verifyOtp = async (req, res) => {
         totalPoints:     cust.TOTAL_POINTS,
         joinDate:        cust.JOIN_DATE,
         qrCode:          cust.QR_CODE,
+        tierExpiry:      cust.TIER_EXPIRY,
       },
     });
   } catch (err) {
@@ -179,4 +177,72 @@ const verifyOtp = async (req, res) => {
   }
 };
 
-module.exports = { sendOtp, verifyOtp };
+// POST /api/portal/auth/qr-login
+// Body: { qr_code }
+const qrLogin = async (req, res) => {
+  try {
+    const { qr_code } = req.body;
+    if (!qr_code)
+      return res.status(400).json({ success: false, message: 'qr_code required.' });
+
+    const pool = await getLoyaltyPool();
+
+    // QR_CODE can be numeric IDX or MEMBERSHIP_ID string
+    const result = await pool.request()
+      .input('qr',    sql.NVarChar, String(qr_code).trim())
+      .input('qrnum', sql.NVarChar, String(qr_code).trim())
+      .query(`
+        SELECT TOP 1 IDX, NAME, EMAIL, PHONE, MEMBERSHIP_ID,
+               AVAILABLE_POINTS, TOTAL_POINTS, MEMBERSHIP_TIER,
+               STATUS, JOIN_DATE, QR_CODE, TIER_EXPIRY
+        FROM tb_CUSTOMERS
+        WHERE CAST(QR_CODE AS NVARCHAR(100)) = @qr
+           OR MEMBERSHIP_ID = @qrnum
+      `);
+
+    if (!result.recordset.length)
+      return res.status(404).json({ success: false, message: 'QR code not recognised.' });
+
+    const cust = result.recordset[0];
+
+    if (cust.STATUS !== 'active')
+      return res.status(403).json({ success: false, message: 'Account is not active.' });
+
+    // Update last activity
+    await pool.request()
+      .input('custid', sql.Numeric, cust.IDX)
+      .query('UPDATE tb_CUSTOMERS SET LAST_ACTIVITY = CAST(GETDATE() AS DATE), UPDATED_AT = GETDATE() WHERE IDX = @custid');
+
+    console.log(`✅ Login — ${cust.NAME} (${cust.EMAIL}) — ${new Date().toLocaleTimeString()}`);
+
+    const token = signToken({
+      custid:       cust.IDX,
+      name:         cust.NAME,
+      email:        cust.EMAIL,
+      isPortalUser: true,
+    });
+
+    res.json({
+      success: true,
+      token,
+      customer: {
+        idx:             cust.IDX,
+        name:            cust.NAME,
+        email:           cust.EMAIL,
+        phone:           cust.PHONE,
+        membershipId:    cust.MEMBERSHIP_ID,
+        membershipTier:  cust.MEMBERSHIP_TIER,
+        availablePoints: cust.AVAILABLE_POINTS,
+        totalPoints:     cust.TOTAL_POINTS,
+        joinDate:        cust.JOIN_DATE,
+        qrCode:          cust.QR_CODE,
+        tierExpiry:      cust.TIER_EXPIRY,
+      },
+    });
+  } catch (err) {
+    console.error('qrLogin:', err);
+    res.status(500).json({ success: false, message: 'Server error.', error: err.message });
+  }
+};
+
+module.exports = { sendOtp, verifyOtp, qrLogin };

@@ -18,7 +18,8 @@ const portalProtect = (req, res, next) => {
 
     req.customer = decoded; // custid, name, email, isPortalUser
     next();
-  } catch {
+  } catch (err) {
+    console.log(`🔴 Session ended — Token invalid/expired — ${new Date().toLocaleTimeString()}`);
     return res.status(401).json({ success: false, message: 'Portal token invalid or expired.' });
   }
 };
