@@ -1,152 +1,173 @@
-const bcrypt = require('bcryptjs');
+// controllers/authController.js
 const jwt    = require('jsonwebtoken');
-const { v4: uuidv4 } = require('uuid');
-const { readDB, writeDB } = require('../config/db');
+const bcrypt = require('bcryptjs');
+const { getPool, sql } = require('../config/database');
 
-const JWT_SECRET  = process.env.JWT_SECRET  || 'retailco_secret';
-const JWT_EXPIRES = process.env.JWT_EXPIRES_IN || '7d';
+const signToken = (payload) =>
+  jwt.sign(payload, process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+  });
 
-function generateToken(user) {
-  return jwt.sign(
-    { id: user.id, email: user.email, role: user.role, name: user.name },
-    JWT_SECRET,
-    { expiresIn: JWT_EXPIRES }
-  );
-}
-
-// ─── POST /api/auth/login ────────────────────────────────────────────────────
-async function login(req, res) {
+// POST /api/auth/login
+const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { username, password } = req.body;
+    if (!username || !password)
+      return res.status(400).json({ success: false, message: 'Username and password required.' });
 
-    if (!email || !password) {
-      return res.status(400).json({ success: false, message: 'Email and password are required.' });
-    }
+    const pool   = await getPool();
+    const result = await pool.request()
+      .input('username', sql.NVarChar, username)
+      .query(`
+        SELECT TOP 1
+          IDX, USER_NAME, PASSWORD, DEPARTMENT, LOGIN
+        FROM tb_USERS
+        WHERE USER_NAME = @username
+      `);
 
-    const db   = readDB();
-    const user = db.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    const user = result.recordset[0];
 
-    if (!user) {
-      return res.status(401).json({ success: false, message: 'Invalid email or password.' });
-    }
+    console.log('DB user found:', user
+      ? { IDX: user.IDX, USER_NAME: user.USER_NAME, LOGIN: user.LOGIN, PASSWORD: user.PASSWORD }
+      : 'NOT FOUND');
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(401).json({ success: false, message: 'Invalid email or password.' });
-    }
+    if (!user)
+      return res.status(401).json({ success: false, message: 'Invalid credentials.' });
 
-    const token = generateToken(user);
+    // LOGIN = 'T' = active, 'F' = disabled
+    console.log('LOGIN value:', JSON.stringify(user.LOGIN));
+    if (user.LOGIN && user.LOGIN.trim() === 'F')
+      return res.status(401).json({ success: false, message: 'Account is disabled.' });
 
-    return res.status(200).json({
+    // Support plain-text and bcrypt passwords
+    const isBcrypt = user.PASSWORD && user.PASSWORD.startsWith('$2');
+    const isMatch  = isBcrypt
+      ? await bcrypt.compare(password, user.PASSWORD)
+      : password === user.PASSWORD;
+
+    console.log('Password check:', {
+      isBcrypt,
+      inputPassword: password,
+      dbPassword:    user.PASSWORD,
+      isMatch,
+    });
+
+    if (!isMatch)
+      return res.status(401).json({ success: false, message: 'Invalid credentials.' });
+
+    const token = signToken({
+      userid:     user.IDX,
+      username:   user.USER_NAME,
+      department: user.DEPARTMENT,
+    });
+
+    res.json({
       success: true,
-      message: 'Login successful.',
       token,
       user: {
-        id:    user.id,
-        name:  user.name,
-        email: user.email,
-        role:  user.role,
+        userid:     user.IDX,
+        username:   user.USER_NAME,
+        department: user.DEPARTMENT,
       },
     });
   } catch (err) {
-    console.error('Login error:', err);
-    return res.status(500).json({ success: false, message: 'Server error.' });
+    console.error('login error:', err);
+    res.status(500).json({ success: false, message: 'Server error.', error: err.message });
   }
-}
+};
 
-// ─── POST /api/auth/register ─────────────────────────────────────────────────
-async function register(req, res) {
+// POST /api/auth/register
+const register = async (req, res) => {
   try {
-    const { name, email, password, role = 'staff' } = req.body;
+    const { username, password, department } = req.body;
+    if (!username || !password)
+      return res.status(400).json({ success: false, message: 'Username and password required.' });
 
-    if (!name || !email || !password) {
-      return res.status(400).json({ success: false, message: 'Name, email and password are required.' });
-    }
+    const pool = await getPool();
 
-    if (password.length < 6) {
-      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters.' });
-    }
-
-    const db = readDB();
-    const exists = db.users.find(u => u.email.toLowerCase() === email.toLowerCase());
-    if (exists) {
-      return res.status(409).json({ success: false, message: 'Email already registered.' });
-    }
+    const exists = await pool.request()
+      .input('username', sql.NVarChar, username)
+      .query('SELECT TOP 1 IDX FROM tb_USERS WHERE USER_NAME = @username');
+    if (exists.recordset.length)
+      return res.status(409).json({ success: false, message: 'Username already exists.' });
 
     const hashed = await bcrypt.hash(password, 10);
-    const newUser = {
-      id:        uuidv4(),
-      name,
-      email:     email.toLowerCase(),
-      password:  hashed,
-      role:      ['admin', 'staff'].includes(role) ? role : 'staff',
-      createdAt: new Date().toISOString(),
-    };
 
-    db.users.push(newUser);
-    writeDB(db);
+    await pool.request()
+      .input('username',   sql.NVarChar, username)
+      .input('password',   sql.NVarChar, hashed)
+      .input('department', sql.Char,     department || null)
+      .query(`
+        INSERT INTO tb_USERS (USER_NAME, PASSWORD, DEPARTMENT, LOGIN, INSERT_TIME)
+        VALUES (@username, @password, @department, 'T', GETDATE())
+      `);
 
-    const token = generateToken(newUser);
-
-    return res.status(201).json({
-      success: true,
-      message: 'User registered successfully.',
-      token,
-      user: { id: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role },
-    });
+    res.status(201).json({ success: true, message: 'User registered successfully.' });
   } catch (err) {
-    console.error('Register error:', err);
-    return res.status(500).json({ success: false, message: 'Server error.' });
+    console.error('register error:', err);
+    res.status(500).json({ success: false, message: 'Server error.', error: err.message });
   }
-}
+};
 
-// ─── GET /api/auth/me ────────────────────────────────────────────────────────
-function getMe(req, res) {
+// GET /api/auth/me
+const getMe = async (req, res) => {
   try {
-    const db   = readDB();
-    const user = db.users.find(u => u.id === req.user.id);
+    const pool   = await getPool();
+    const result = await pool.request()
+      .input('userid', sql.Numeric, req.user.userid)
+      .query('SELECT IDX, USER_NAME, DEPARTMENT, LOGIN FROM tb_USERS WHERE IDX = @userid');
 
-    if (!user) {
+    if (!result.recordset.length)
       return res.status(404).json({ success: false, message: 'User not found.' });
-    }
 
-    return res.status(200).json({
+    const u = result.recordset[0];
+    res.json({
       success: true,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role, createdAt: user.createdAt },
+      user: {
+        userid:     u.IDX,
+        username:   u.USER_NAME,
+        department: u.DEPARTMENT,
+      },
     });
   } catch (err) {
-    return res.status(500).json({ success: false, message: 'Server error.' });
+    res.status(500).json({ success: false, message: 'Server error.', error: err.message });
   }
-}
+};
 
-// ─── PUT /api/auth/change-password ───────────────────────────────────────────
-async function changePassword(req, res) {
+// PUT /api/auth/change-password
+const changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword)
+      return res.status(400).json({ success: false, message: 'Both passwords required.' });
 
-    if (!currentPassword || !newPassword) {
-      return res.status(400).json({ success: false, message: 'Both current and new password required.' });
-    }
-    if (newPassword.length < 6) {
-      return res.status(400).json({ success: false, message: 'New password must be at least 6 characters.' });
-    }
+    const pool   = await getPool();
+    const result = await pool.request()
+      .input('userid', sql.Numeric, req.user.userid)
+      .query('SELECT TOP 1 PASSWORD FROM tb_USERS WHERE IDX = @userid');
 
-    const db    = readDB();
-    const index = db.users.findIndex(u => u.id === req.user.id);
-    if (index === -1) return res.status(404).json({ success: false, message: 'User not found.' });
+    const user = result.recordset[0];
+    if (!user)
+      return res.status(404).json({ success: false, message: 'User not found.' });
 
-    const isMatch = await bcrypt.compare(currentPassword, db.users[index].password);
-    if (!isMatch) {
-      return res.status(401).json({ success: false, message: 'Current password is incorrect.' });
-    }
+    const isBcrypt = user.PASSWORD && user.PASSWORD.startsWith('$2');
+    const isMatch  = isBcrypt
+      ? await bcrypt.compare(currentPassword, user.PASSWORD)
+      : currentPassword === user.PASSWORD;
 
-    db.users[index].password = await bcrypt.hash(newPassword, 10);
-    writeDB(db);
+    if (!isMatch)
+      return res.status(401).json({ success: false, message: 'Current password incorrect.' });
 
-    return res.status(200).json({ success: true, message: 'Password changed successfully.' });
+    const hashed = await bcrypt.hash(newPassword, 10);
+    await pool.request()
+      .input('userid',   sql.Numeric,  req.user.userid)
+      .input('password', sql.NVarChar, hashed)
+      .query('UPDATE tb_USERS SET PASSWORD = @password WHERE IDX = @userid');
+
+    res.json({ success: true, message: 'Password changed successfully.' });
   } catch (err) {
-    return res.status(500).json({ success: false, message: 'Server error.' });
+    res.status(500).json({ success: false, message: 'Server error.', error: err.message });
   }
-}
+};
 
 module.exports = { login, register, getMe, changePassword };
