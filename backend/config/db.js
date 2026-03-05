@@ -1,150 +1,155 @@
-const fs   = require('fs');
-const path = require('path');
+/**
+ * config/db.js
+ * Exports: sql, query(), getPool(), getLoyaltyPool(), readDB(), writeDB()
+ */
 
-const DB_FILE = path.join(__dirname, 'userdb.js');
+require('dotenv').config();
+const mssql = require('mssql');
 
-// ---------- seed data ----------
-const seed = {
-  users: [
-    {
-      id: 'u001',
-      name: 'Admin User',
-      email: 'admin@retailco.lk',
-      // bcrypt of "admin1234"
-      password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
-      role: 'admin',
-      createdAt: '2024-01-01T00:00:00.000Z',
-    },
-    {
-      id: 'u002',
-      name: 'Staff User',
-      email: 'staff@retailco.lk',
-      password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
-      role: 'staff',
-      createdAt: '2024-01-01T00:00:00.000Z',
-    },
-  ],
-  customers: [
-    {
-      id: 'c001',
-      name: 'Nuwan Perera',
-      email: 'nuwan.perera@gmail.com',
-      phone: '+94 77 123 4567',
-      membershipId: 'LYL-2024-001',
-      membershipTier: 'Gold',
-      totalPoints: 15420,
-      availablePoints: 8750,
-      redeemedPoints: 6670,
-      joinDate: '2022-03-15',
-      lastActivity: '2024-01-20',
-      qrCode: 'c001',
-      status: 'active',
-    },
-    {
-      id: 'c002',
-      name: 'Dilani Fernando',
-      email: 'dilani.f@yahoo.com',
-      phone: '+94 71 987 6543',
-      membershipId: 'LYL-2023-089',
-      membershipTier: 'Platinum',
-      totalPoints: 45200,
-      availablePoints: 22100,
-      redeemedPoints: 23100,
-      joinDate: '2021-07-10',
-      lastActivity: '2024-01-22',
-      qrCode: 'c002',
-      status: 'active',
-    },
-    {
-      id: 'c003',
-      name: 'Kasun Silva',
-      email: 'kasun.silva@hotmail.com',
-      phone: '+94 76 555 1234',
-      membershipId: 'LYL-2024-156',
-      membershipTier: 'Silver',
-      totalPoints: 4200,
-      availablePoints: 4200,
-      redeemedPoints: 0,
-      joinDate: '2024-01-01',
-      lastActivity: '2024-01-19',
-      qrCode: 'c003',
-      status: 'active',
-    },
-    {
-      id: 'c004',
-      name: 'Amali Wickramasinghe',
-      email: 'amali.w@gmail.com',
-      phone: '+94 78 333 9876',
-      membershipId: 'LYL-2022-042',
-      membershipTier: 'Bronze',
-      totalPoints: 1850,
-      availablePoints: 1350,
-      redeemedPoints: 500,
-      joinDate: '2022-11-20',
-      lastActivity: '2024-01-16',
-      qrCode: 'c004',
-      status: 'active',
-    },
-    {
-      id: 'c005',
-      name: 'Chamara Bandara',
-      email: 'chamara.b@gmail.com',
-      phone: '+94 70 444 5678',
-      membershipId: 'LYL-2023-201',
-      membershipTier: 'Gold',
-      totalPoints: 12800,
-      availablePoints: 9300,
-      redeemedPoints: 3500,
-      joinDate: '2023-02-14',
-      lastActivity: '2024-01-21',
-      qrCode: 'c005',
-      status: 'active',
-    },
-  ],
-  transactions: [
-    { id: 't001', customerId: 'c001', date: '2024-01-20', description: 'Purchase at Colombo 7 Branch', points: 250,   type: 'earned',   store: 'Colombo 7',     amount: 5000  },
-    { id: 't002', customerId: 'c001', date: '2024-01-15', description: 'Redeemed for Discount',        points: -500,  type: 'redeemed', store: 'Nugegoda',      amount: 0     },
-    { id: 't003', customerId: 'c001', date: '2024-01-10', description: 'Birthday Bonus Points',        points: 1000,  type: 'bonus',    store: 'System',        amount: 0     },
-    { id: 't004', customerId: 'c001', date: '2024-01-05', description: 'Purchase at Nugegoda Branch',  points: 180,   type: 'earned',   store: 'Nugegoda',      amount: 3600  },
-    { id: 't005', customerId: 'c001', date: '2023-12-28', description: 'Christmas Special Purchase',   points: 420,   type: 'earned',   store: 'Kandy',         amount: 8400  },
-    { id: 't006', customerId: 'c002', date: '2024-01-22', description: 'Purchase at One Galle Face',   points: 850,   type: 'earned',   store: 'One Galle Face',amount: 17000 },
-    { id: 't007', customerId: 'c002', date: '2024-01-18', description: 'Redeemed for Free Item',       points: -1500, type: 'redeemed', store: 'One Galle Face',amount: 0     },
-    { id: 't008', customerId: 'c002', date: '2024-01-12', description: 'Double Points Weekend',        points: 600,   type: 'bonus',    store: 'System',        amount: 0     },
-    { id: 't009', customerId: 'c003', date: '2024-01-19', description: 'Purchase at Maharagama',       points: 200,   type: 'earned',   store: 'Maharagama',    amount: 4000  },
-    { id: 't010', customerId: 'c003', date: '2024-01-10', description: 'Welcome Bonus',                points: 500,   type: 'bonus',    store: 'System',        amount: 0     },
-    { id: 't011', customerId: 'c004', date: '2024-01-16', description: 'Purchase at Gampaha',          points: 120,   type: 'earned',   store: 'Gampaha',       amount: 2400  },
-    { id: 't012', customerId: 'c004', date: '2023-12-20', description: 'Redeemed for Cashback',        points: -500,  type: 'redeemed', store: 'Gampaha',       amount: 0     },
-    { id: 't013', customerId: 'c005', date: '2024-01-21', description: 'Purchase at Kandy City Centre',points: 340,   type: 'earned',   store: 'Kandy',         amount: 6800  },
-    { id: 't014', customerId: 'c005', date: '2024-01-08', description: 'New Year Bonus',               points: 750,   type: 'bonus',    store: 'System',        amount: 0     },
-  ],
+const posbackConfig = {
+  server:   process.env.DB_SERVER   || '173.208.167.190',
+  port:     parseInt(process.env.DB_PORT) || 47182,
+  database: process.env.DB_DATABASE || 'POSBACK_SYSTEM',
+  user:     process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  options:  { encrypt: false, trustServerCertificate: true, enableArithAbort: true },
+  pool:     { max: 10, min: 0, idleTimeoutMillis: 30000 },
+  connectionTimeout: 30000, requestTimeout: 30000,
 };
 
-// ---------- helpers ----------
-function readDB() {
-  try {
-    if (fs.existsSync(DB_FILE)) {
-      const raw = fs.readFileSync(DB_FILE, 'utf8');
-      // strip "module.exports = " wrapper if present
-      const json = raw.replace(/^module\.exports\s*=\s*/, '').replace(/;?\s*$/, '');
-      return JSON.parse(json);
-    }
-  } catch (e) {
-    console.error('DB read error, using seed:', e.message);
+const loyaltyConfig = {
+  server:   process.env.DB_SERVER || '173.208.167.190',
+  port:     parseInt(process.env.DB_PORT) || 47182,
+  database: process.env.LOYALTY_DB_DATABASE || 'RT_LOYALTY',
+  user:     process.env.LOYALTY_DB_USER     || process.env.DB_USER,
+  password: process.env.LOYALTY_DB_PASSWORD || process.env.DB_PASSWORD,
+  options:  { encrypt: false, trustServerCertificate: true, enableArithAbort: true },
+  pool:     { max: 10, min: 0, idleTimeoutMillis: 30000 },
+  connectionTimeout: 30000, requestTimeout: 30000,
+};
+
+let _posPool = null, _loyaltyPool = null;
+
+const getPool = async () => {
+  if (!_posPool) { _posPool = await mssql.connect(posbackConfig); console.log('✅ POSBACK_SYSTEM connected'); }
+  return _posPool;
+};
+
+const getLoyaltyPool = async () => {
+  if (!_loyaltyPool) { _loyaltyPool = await new mssql.ConnectionPool(loyaltyConfig).connect(); console.log('✅ RT_LOYALTY connected'); }
+  return _loyaltyPool;
+};
+
+const sql = mssql;
+
+/**
+ * query(text, params) — parameterised query against RT_LOYALTY
+ * params shape: { paramName: { type: sql.X, value: v } }
+ */
+const query = async (text, params = {}) => {
+  const pool = await getLoyaltyPool();
+  const req  = pool.request();
+  for (const [name, { type, value }] of Object.entries(params)) {
+    req.input(name, type, value ?? null);
   }
-  return JSON.parse(JSON.stringify(seed)); // deep copy
-}
+  return (await req.query(text)).recordset;
+};
 
-function writeDB(data) {
-  try {
-    fs.writeFileSync(DB_FILE, 'module.exports = ' + JSON.stringify(data, null, 2) + ';', 'utf8');
-  } catch (e) {
-    console.error('DB write error:', e.message);
+/**
+ * readDB / writeDB — keeps portalAuthController's JSON-file API
+ * but backed by SQL Server tb_OTP_SESSIONS, tb_CUSTOMERS, tb_TRANSACTIONS
+ */
+const readDB = async () => {
+  const pool = await getLoyaltyPool();
+  const [c, o, t] = await Promise.all([
+    pool.request().query(`
+      SELECT id, name, email, phone, date_of_birth,
+             membership_id AS membershipId, membership_tier AS membershipTier,
+             total_points AS totalPoints, available_points AS availablePoints,
+             redeemed_points AS redeemedPoints,
+             join_date AS joinDate, last_activity AS lastActivity, status
+      FROM tb_CUSTOMERS`),
+    pool.request().query(`
+      SELECT id, email, otp, expires_at AS expiresAt, used, is_new
+      FROM tb_OTP_SESSIONS
+      WHERE expires_at > DATEADD(HOUR, -1, SYSUTCDATETIME())`),
+    pool.request().query(`
+      SELECT id, customer_id AS customerId, type, points,
+             bill_amount AS amount, description, tx_date AS date
+      FROM tb_TRANSACTIONS`),
+  ]);
+  return {
+    customers:    c.recordset,
+    otpSessions:  o.recordset.map(s => ({
+      ...s, used: !!s.used, is_new: !!s.is_new,
+      expiresAt: s.expiresAt instanceof Date ? s.expiresAt.toISOString() : s.expiresAt,
+    })),
+    transactions: t.recordset,
+  };
+};
+
+const writeDB = async (db) => {
+  const pool = await getLoyaltyPool();
+
+  for (const s of (db.otpSessions || [])) {
+    await pool.request()
+      .input('id',      sql.UniqueIdentifier, s.id)
+      .input('email',   sql.NVarChar,         s.email)
+      .input('otp',     sql.NVarChar,         s.otp)
+      .input('expires', sql.DateTime2,        new Date(s.expiresAt))
+      .input('used',    sql.Bit,              s.used   ? 1 : 0)
+      .input('is_new',  sql.Bit,              s.is_new ? 1 : 0)
+      .query(`
+        MERGE tb_OTP_SESSIONS AS target
+        USING (SELECT @id AS id) AS src ON target.id = src.id
+        WHEN MATCHED THEN
+          UPDATE SET otp=@otp, expires_at=@expires, used=@used, is_new=@is_new
+        WHEN NOT MATCHED THEN
+          INSERT (id,email,otp,expires_at,used,is_new)
+          VALUES (@id,@email,@otp,@expires,@used,@is_new);`);
   }
-}
 
-// Initialise file if missing
-if (!fs.existsSync(DB_FILE)) {
-  writeDB(seed);
-}
+  for (const c of (db.customers || [])) {
+    await pool.request()
+      .input('id',       sql.UniqueIdentifier, c.id)
+      .input('name',     sql.NVarChar,         c.name)
+      .input('email',    sql.NVarChar,         c.email)
+      .input('phone',    sql.NVarChar,         c.phone         || '')
+      .input('dob',      sql.Date,             c.date_of_birth || null)
+      .input('memid',    sql.NVarChar,         c.membershipId)
+      .input('tier',     sql.NVarChar,         c.membershipTier  || 'Bronze')
+      .input('total',    sql.Int,              c.totalPoints     || 0)
+      .input('avail',    sql.Int,              c.availablePoints || 0)
+      .input('redeemed', sql.Int,              c.redeemedPoints  || 0)
+      .input('joindate', sql.Date,             c.joinDate)
+      .input('lastact',  sql.Date,             c.lastActivity)
+      .input('status',   sql.NVarChar,         c.status || 'active')
+      .query(`
+        IF NOT EXISTS (SELECT 1 FROM tb_CUSTOMERS WHERE id=@id)
+          INSERT INTO tb_CUSTOMERS
+            (id,name,email,phone,date_of_birth,membership_id,membership_tier,
+             total_points,available_points,redeemed_points,join_date,last_activity,status,created_at,updated_at)
+          VALUES
+            (@id,@name,@email,@phone,@dob,@memid,@tier,
+             @total,@avail,@redeemed,@joindate,@lastact,@status,
+             SYSUTCDATETIME(),SYSUTCDATETIME())`);
+  }
 
-module.exports = { readDB, writeDB };
+  for (const t of (db.transactions || [])) {
+    await pool.request()
+      .input('id',   sql.UniqueIdentifier, t.id)
+      .input('cid',  sql.UniqueIdentifier, t.customerId)
+      .input('type', sql.NVarChar,         t.type)
+      .input('pts',  sql.Int,              t.points  || 0)
+      .input('amt',  sql.Decimal(18,2),    t.amount  || 0)
+      .input('desc', sql.NVarChar,         t.description || '')
+      .input('date', sql.Date,             t.date)
+      .query(`
+        IF NOT EXISTS (SELECT 1 FROM tb_TRANSACTIONS WHERE id=@id)
+          INSERT INTO tb_TRANSACTIONS
+            (id,customer_id,type,points,bill_amount,description,tx_date,created_at)
+          VALUES (@id,@cid,@type,@pts,@amt,@desc,@date,SYSUTCDATETIME())`);
+  }
+};
+
+module.exports = { sql, query, getPool, getLoyaltyPool, readDB, writeDB };
