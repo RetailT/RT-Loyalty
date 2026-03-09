@@ -1,25 +1,67 @@
-// src/api/index.js
-const BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+// src/api/index.js — POSBACK based portal API
+const API = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
-const h = (token) => ({
-  'Content-Type': 'application/json',
-  ...(token ? { Authorization: `Bearer ${token}` } : {}),
-});
+const authHeader = token => ({ 'Content-Type':'application/json', 'Authorization':`Bearer ${token}` });
 
-const handle = async (res) => {
+// ── Auth ──────────────────────────────────────────────────────────────────────
+export const sendOTP = async (email, phone) => {
+  const res  = await fetch(`${API}/api/portal/auth/send-otp`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ phone }),
+  });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Request failed');
+  if (!data.success) throw new Error(data.message);
   return data;
 };
 
-export const sendOTP    = (email)        => fetch(`${BASE}/api/portal/auth/send-otp`,   { method:'POST', headers:h(), body:JSON.stringify({ email }) }).then(handle);
-export const verifyOTP  = (email, otp)   => fetch(`${BASE}/api/portal/auth/verify-otp`, { method:'POST', headers:h(), body:JSON.stringify({ email, otp }) }).then(handle);
-export const getMe      = (token)        => fetch(`${BASE}/api/portal/me`,               { headers:h(token) }).then(handle);
-export const updateMe   = (token, data)  => fetch(`${BASE}/api/portal/me`,               { method:'PUT', headers:h(token), body:JSON.stringify(data) }).then(handle);
-export const getRewards = (token)        => fetch(`${BASE}/api/portal/rewards`,          { headers:h(token) }).then(handle);
-export const getMyRedemptions = (token)  => fetch(`${BASE}/api/portal/redemptions`,      { headers:h(token) }).then(handle);
-export const redeemReward = (token, rid) => fetch(`${BASE}/api/portal/redeem`,           { method:'POST', headers:h(token), body:JSON.stringify({ reward_id: rid }) }).then(handle);
-export const getMyTransactions = (token, params={}) => {
-  const q = new URLSearchParams(params).toString();
-  return fetch(`${BASE}/api/portal/transactions${q?'?'+q:''}`, { headers:h(token) }).then(handle);
+export const verifyOTP = async (email, phone, otp) => {
+  const res  = await fetch(`${API}/api/portal/auth/verify-otp`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ phone, otp }),
+  });
+  const data = await res.json();
+  if (!data.success) throw new Error(data.message);
+  return data;
+};
+
+// ── Customer ──────────────────────────────────────────────────────────────────
+export const getMe = async (token) => {
+  const res  = await fetch(`${API}/api/portal/me`, { headers: authHeader(token) });
+  return res.json();
+};
+
+export const updateMe = async (token, body) => {
+  const res  = await fetch(`${API}/api/portal/me`, {
+    method:'PUT', headers: authHeader(token), body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!data.success) throw new Error(data.message);
+  return data;
+};
+
+// ── Transactions ──────────────────────────────────────────────────────────────
+export const getMyTransactions = async (token, params = {}) => {
+  const qs  = new URLSearchParams(params).toString();
+  const res = await fetch(`${API}/api/portal/transactions${qs?'?'+qs:''}`, { headers: authHeader(token) });
+  return res.json();
+};
+
+// ── Rewards ───────────────────────────────────────────────────────────────────
+export const getRewards = async (token) => {
+  const res = await fetch(`${API}/api/portal/rewards`, { headers: authHeader(token) });
+  return res.json();
+};
+
+export const redeemReward = async (token, rewardId) => {
+  const res  = await fetch(`${API}/api/portal/redeem`, {
+    method:'POST', headers: authHeader(token), body: JSON.stringify({ reward_id: rewardId }),
+  });
+  const data = await res.json();
+  if (!data.success) throw new Error(data.message);
+  return data;
+};
+
+export const getMyRedemptions = async (token) => {
+  const res = await fetch(`${API}/api/portal/redemptions`, { headers: authHeader(token) });
+  return res.json();
 };

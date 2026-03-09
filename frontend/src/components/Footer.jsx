@@ -29,7 +29,7 @@ export default function Footer({ onNavigate, currentPage }) {
             <div>
               {/* Mobile logo */}
               <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:20 }}>
-                <div style={{ width:38, height:38, background:'linear-gradient(135deg,#FF6B00,#FF8C00)', borderRadius:9, display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, fontWeight:900, color:'#fff', boxShadow:'0 4px 12px rgba(255,107,0,0.3)' }}>R</div>
+                <div style={{ width:38, height:38, background:'linear-gradient(135deg,#FF6B00,#FF8C00)', borderRadius:9, display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, fontWeight:900, color:'#fff', boxShadow:'0 4px 12px rgba(255,107,0,0.3)' }}>RT</div>
                 <div>
                   <div style={{ color:theme.text, fontFamily:"'Bebas Neue',sans-serif", fontSize:18, letterSpacing:2, lineHeight:1 }}>RETAIL</div>
                   <div style={{ color:'#FF6B00', fontSize:8, letterSpacing:3, textTransform:'uppercase', fontFamily:'monospace' }}>LOYALTY PORTAL</div>
@@ -51,7 +51,7 @@ export default function Footer({ onNavigate, currentPage }) {
               {/* Logo + description */}
               <div style={{ flex:'0 0 auto', maxWidth:360 }}>
                 <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:16 }}>
-                  <div style={{ width:42, height:42, background:'linear-gradient(135deg,#FF6B00,#FF8C00)', borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, fontWeight:900, color:'#fff', boxShadow:'0 4px 14px rgba(255,107,0,0.35)' }}>R</div>
+                  <div style={{ width:42, height:42, background:'linear-gradient(135deg,#FF6B00,#FF8C00)', borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, fontWeight:900, color:'#fff', boxShadow:'0 4px 14px rgba(255,107,0,0.35)' }}>RT</div>
                   <div>
                     <div style={{ color:theme.text, fontFamily:"'Bebas Neue',sans-serif", fontSize:20, letterSpacing:2, lineHeight:1 }}>RETAIL</div>
                     <div style={{ color:'#FF6B00', fontSize:9, letterSpacing:3, textTransform:'uppercase', fontFamily:'monospace' }}>LOYALTY PORTAL</div>

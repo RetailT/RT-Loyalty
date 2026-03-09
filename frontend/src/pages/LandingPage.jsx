@@ -2,24 +2,22 @@
 import React from 'react';
 import { useTheme } from '../context/ThemeContext';
 import useResponsive from '../hooks/useResponsive';
-import { TIER_CONFIG } from '../utils/tierConfig';
-
 export default function LandingPage({ onNavigate }) {
   const { theme, mode } = useTheme();
   const { isMobile }    = useResponsive();
 
   const benefits = [
     { icon:'🏪', title:'Earn at 500+ Stores', desc:'All participating Retail POS outlets across Sri Lanka' },
-    { icon:'💎', title:'Tier Rewards',         desc:'Bronze → Silver → Gold → Platinum exclusive perks' },
+    { icon:'💎', title:'Tier Rewards',         desc:'Point Card → Product Discount Card → Total Discount Card → Points & Product Discount exclusive perks' },
     { icon:'🎁', title:'Redeem Anytime',       desc:'Vouchers, discounts, free items and more' },
-    { icon:'📱', title:'Mobile First',         desc:'Login with just your email — no password needed' },
+    { icon:'📱', title:'Mobile First',         desc:'Login with just your mobile number — no password needed' },
   ];
 
-  const tiers = [
-    { name:'Bronze',   icon:'🥉', range:'0 – 4,999 pts'     },
-    { name:'Silver',   icon:'🥈', range:'5,000 – 9,999 pts' },
-    { name:'Gold',     icon:'🥇', range:'10,000 – 24,999'   },
-    { name:'Platinum', icon:'💎', range:'25,000+ pts'        },
+  const loyaltyTypes = [
+    { name:'Point Card',                 icon:'💳', color:'linear-gradient(135deg,#92400e,#b45309)' },
+    { name:'Product Discount Card',      icon:'💰', color:'linear-gradient(135deg,#475569,#64748b)' },
+    { name:'Total Discount Card',        icon:'🏷️', color:'linear-gradient(135deg,#b45309,#d97706)' },
+    { name:'Points & Product Discount',  icon:'⭐', color:'linear-gradient(135deg,#4338ca,#6366f1)' },
   ];
 
   return (
@@ -50,7 +48,7 @@ export default function LandingPage({ onNavigate }) {
             </button>
           </div>
           <div style={{ display:'flex', justifyContent:'center', gap: isMobile?24:48, marginTop:56, flexWrap:'wrap' }}>
-            {[['500K+','Members'],['2.5M+','Points Earned'],['500+','Stores'],['4','Reward Tiers']].map(([num,lbl]) => (
+            {[['500K+','Members'],['2.5M+','Points Earned'],['500+','Stores'],['5','Card Types']].map(([num,lbl]) => (
               <div key={lbl} style={{ textAlign:'center' }}>
                 <div style={{ color:'#FF6B00', fontFamily:"'Bebas Neue',sans-serif", fontSize: isMobile?28:36, letterSpacing:2, lineHeight:1 }}>{num}</div>
                 <div style={{ color:theme.textFaint, fontSize:10, fontFamily:"'Space Mono',monospace", letterSpacing:1, textTransform:'uppercase', marginTop:4 }}>{lbl}</div>
@@ -83,20 +81,16 @@ export default function LandingPage({ onNavigate }) {
       <section style={{ background: mode==='dark'?'#111':'#f8f8f8', padding: isMobile?'48px 16px':'72px 32px' }}>
         <div style={{ maxWidth:1100, margin:'0 auto' }}>
           <div style={{ textAlign:'center', marginBottom:40 }}>
-            <h2 style={{ color:theme.text, fontFamily:"'Bebas Neue',sans-serif", fontSize: isMobile?32:42, letterSpacing:2, marginBottom:8 }}>LOYALTY TIERS</h2>
-            <p style={{ color:theme.textMuted, fontSize:13 }}>Earn more, unlock better rewards</p>
+            <h2 style={{ color:theme.text, fontFamily:"'Bebas Neue',sans-serif", fontSize: isMobile?32:42, letterSpacing:2, marginBottom:8 }}>LOYALTY CARD TYPES</h2>
+            <p style={{ color:theme.textMuted, fontSize:13 }}>Choose the right card for your lifestyle</p>
           </div>
           <div style={{ display:'grid', gridTemplateColumns:`repeat(${isMobile?2:4},1fr)`, gap:16 }}>
-            {tiers.map(t => {
-              const cfg = TIER_CONFIG[t.name];
-              return (
-                <div key={t.name} style={{ background:theme.bgCard, border:`1px solid ${theme.border}`, borderRadius:16, padding:'24px 20px', textAlign:'center' }}>
-                  <div style={{ width:52, height:52, margin:'0 auto 14px', background:cfg.gradient, borderRadius:14, display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, boxShadow:'0 6px 20px rgba(0,0,0,0.2)' }}>{t.icon}</div>
-                  <div style={{ color:theme.text, fontFamily:"'Bebas Neue',sans-serif", fontSize:18, letterSpacing:2 }}>{t.name.toUpperCase()}</div>
-                  <div style={{ color:theme.textFaint, fontSize:10, fontFamily:"'Space Mono',monospace", marginTop:4 }}>{t.range}</div>
-                </div>
-              );
-            })}
+            {loyaltyTypes.map(t => (
+              <div key={t.name} style={{ background:theme.bgCard, border:`1px solid ${theme.border}`, borderRadius:16, padding:'24px 20px', textAlign:'center' }}>
+                <div style={{ width:52, height:52, margin:'0 auto 14px', background:t.color, borderRadius:14, display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, boxShadow:'0 6px 20px rgba(0,0,0,0.2)' }}>{t.icon}</div>
+                <div style={{ color:theme.text, fontFamily:"'Bebas Neue',sans-serif", fontSize:15, letterSpacing:1, marginTop:8 }}>{t.name}</div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -105,7 +99,7 @@ export default function LandingPage({ onNavigate }) {
       <section style={{ maxWidth:800, margin:'0 auto', padding: isMobile?'48px 16px':'72px 32px', textAlign:'center' }}>
         <div style={{ background:'linear-gradient(135deg,#FF6B00,#FF8C00)', borderRadius:24, padding: isMobile?'36px 24px':'48px 40px', boxShadow:'0 24px 60px rgba(255,107,0,0.25)' }}>
           <h2 style={{ color:'#fff', fontFamily:"'Bebas Neue',sans-serif", fontSize: isMobile?36:48, letterSpacing:3, marginBottom:12 }}>START EARNING TODAY</h2>
-          <p style={{ color:'rgba(255,255,255,0.8)', fontSize:14, marginBottom:28 }}>Sign in with your email. No password required.</p>
+          <p style={{ color:'rgba(255,255,255,0.8)', fontSize:14, marginBottom:28 }}>Sign in with your mobile number. No password required.</p>
           <button onClick={() => onNavigate('login')} style={{ padding:'14px 36px', borderRadius:10, background:'#fff', border:'none', color:'#FF6B00', fontFamily:"'Space Mono',monospace", fontSize:12, letterSpacing:2, textTransform:'uppercase', fontWeight:700, cursor:'pointer', boxShadow:'0 8px 24px rgba(0,0,0,0.15)', transition:'transform 0.2s' }}
           onMouseEnter={e => e.currentTarget.style.transform='translateY(-2px)'}
           onMouseLeave={e => e.currentTarget.style.transform='translateY(0)'}>
