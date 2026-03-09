@@ -1,25 +1,32 @@
-// routes/portalRoutes.js  —  /api/portal/*
+// routes/portalRoutes.js
 const express = require('express');
 const router  = express.Router();
 
-const { sendOtp, verifyOtp, qrLogin, logoutPortal } = require('../controllers/portalAuthController');
-const { getMe, updateMe, getTransactions,
-        getRewards, getMyRedemptions,
-        redeemReward }                               = require('../controllers/portalCustomerController');
-const { portalProtect }                              = require('../middleware/portalAuthMiddleware');
+const { companyMiddleware }      = require('../middleware/companyMiddleware');
+const { portalProtect }          = require('../middleware/portalAuthMiddleware');
+const auth                       = require('../controllers/portalAuthController');
+const customer                   = require('../controllers/portalCustomerController');
+const { companyInfoHandler }     = require('../controllers/companyInfoRoute');
 
-// Auth (no token needed)
-router.post('/auth/send-otp',   sendOtp);
-router.post('/auth/verify-otp', verifyOtp);
-router.post('/auth/qr-login',   qrLogin);
-router.post('/auth/logout',     logoutPortal);
+// ── Company info (no middleware — public endpoint) ─────────
+// GET /api/portal/company?shop=keells-nugegoda
+router.get('/company', companyInfoHandler);
 
-// Self-service (portal JWT required)
-router.get ('/me',           portalProtect, getMe);
-router.put ('/me',           portalProtect, updateMe);
-router.get ('/transactions', portalProtect, getTransactions);
-router.get ('/rewards',      portalProtect, getRewards);
-router.get ('/redemptions',  portalProtect, getMyRedemptions);
-router.post('/redeem',       portalProtect, redeemReward);
+// companyMiddleware ← routes
+router.use(companyMiddleware);
+
+// ── Auth (no token needed) ────────────────────────────────
+router.post('/auth/send-otp',   auth.sendOtp);
+router.post('/auth/verify-otp', auth.verifyOtp);
+router.post('/auth/qr-login',   auth.qrLogin);
+router.post('/auth/logout',     auth.logoutPortal);
+
+// ── Customer (token required) ─────────────────────────────
+router.get ('/me',           portalProtect, customer.getMe);
+router.put ('/me',           portalProtect, customer.updateMe);
+router.get ('/transactions', portalProtect, customer.getTransactions);
+router.get ('/rewards',      portalProtect, customer.getRewards);
+router.get ('/redemptions',  portalProtect, customer.getMyRedemptions);
+router.post('/redeem',       portalProtect, customer.redeemReward);
 
 module.exports = router;
