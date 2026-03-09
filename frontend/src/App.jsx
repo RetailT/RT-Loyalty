@@ -1,4 +1,3 @@
-// src/App.jsx
 import React, { useState, useEffect } from 'react';
 import { ThemeProvider }          from './context/ThemeContext';
 import { AuthProvider, useAuth }  from './context/AuthContext';
@@ -73,7 +72,7 @@ function AppContent() {
 
   const renderPage = () => {
     switch (page) {
-      case 'landing':      return <LandingPage      onNavigate={navigate} />;
+      case 'landing':      return <LandingPage       onNavigate={navigate} />;
       case 'login':        return <LoginPage         onNavigate={navigate} />;
       case 'dashboard':    return <DashboardPage     onNavigate={navigate} />;
       case 'transactions': return <TransactionsPage  onNavigate={navigate} />;
