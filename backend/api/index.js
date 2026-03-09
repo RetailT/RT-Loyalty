@@ -13,21 +13,40 @@ const { protect, adminOnly } = require('../middleware/authMiddleware');
 
 // Routes
 const debugRouter  = require('../routes/debug');
-const portalRouter = require('../routes/portalRoutes'); // ← Customer Portal
+const portalRouter = require('../routes/portalRoutes');
 
 const app = express();
 
-// ─── Global Middleware ────────────────────────────────────────────────────────
+// ─── CORS ─────────────────────────────────────────────────────────────────────
+const MAIN_DOMAIN = process.env.MAIN_DOMAIN || 'rtpos.lk';
+
 app.use(cors({
-  origin: [
-    process.env.FRONTEND_URL        || 'http://localhost:3000',
-    process.env.PORTAL_FRONTEND_URL || 'http://localhost:3001',
-    'http://localhost:3000',
-    'http://localhost:3001',
-  ],
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, Postman)
+    if (!origin) return callback(null, true);
+
+    const allowed = [
+      process.env.FRONTEND_URL        || 'http://localhost:3000',
+      process.env.PORTAL_FRONTEND_URL || 'http://localhost:3001',
+      'http://localhost:3000',
+      'http://localhost:3001',
+    ];
+
+    // Allow any subdomain of main domain: *.rtpos.lk
+    const isSubdomain = origin.endsWith('.' + MAIN_DOMAIN) ||
+                        origin === 'https://' + MAIN_DOMAIN ||
+                        origin === 'http://'  + MAIN_DOMAIN;
+
+    if (allowed.includes(origin) || isSubdomain) {
+      callback(null, true);
+    } else {
+      console.warn('[CORS] Blocked origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials:    true,
   methods:        ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Shop-Slug'], // ← added
 }));
 
 app.use(express.json());
@@ -37,7 +56,7 @@ app.use(express.urlencoded({ extended: true }));
 app.get('/', (req, res) => {
   res.json({
     name:    'Retail Loyalty API',
-    version: '1.1.0',
+    version: '1.2.0',
     status:  'running',
     portals: {
       admin:    '/api/auth/login',
@@ -51,7 +70,6 @@ app.get('/', (req, res) => {
 app.use('/api/debug', debugRouter);
 
 // ─── Customer Portal Routes ───────────────────────────────────────────────────
-// All portal endpoints: /api/portal/*
 app.use('/api/portal', portalRouter);
 
 // ─── Admin Auth Routes ────────────────────────────────────────────────────────
@@ -93,7 +111,8 @@ app.listen(PORT, () => {
   console.log(`\n🚀 Retail Loyalty API  →  http://localhost:${PORT}`);
   console.log(`   Admin login           →  POST /api/auth/login`);
   console.log(`   Customer OTP          →  POST /api/portal/auth/send-otp`);
-  console.log(`   Health check          →  GET  /api/debug/health\n`);
+  console.log(`   Health check          →  GET  /api/debug/health`);
+  console.log(`   Subdomain portal      →  *.${MAIN_DOMAIN}\n`);
 });
 
 module.exports = app;
