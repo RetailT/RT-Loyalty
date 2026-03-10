@@ -25,7 +25,7 @@ export default function LoginPage({ onNavigate }) {
     }
   }, [timer]);
 
-  const isValidPhone = (v) => /^[0-9]{9,12}$/.test(v.replace(/[\s\-\(\)]/g, ''));
+  const isValidPhone = (v) => /^[0-9]{9,12}$/.test(v.replace(/[\s\-()/]/g, ''));
 
   const handleSendOTP = async () => {
     if (!isValidPhone(phone)) { setError('Please enter a valid mobile number'); return; }

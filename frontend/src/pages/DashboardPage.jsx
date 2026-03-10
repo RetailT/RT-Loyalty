@@ -44,7 +44,6 @@ export default function DashboardPage({ onNavigate }) {
   const { isMobile }     = useResponsive();
   const [txs, setTxs]    = useState([]);
   const [loadingTx, setLoadingTx] = useState(true);
-  const [showQR, setShowQR] = useState(false);
 
   useEffect(() => {
     if (!token) return;
@@ -66,9 +65,6 @@ export default function DashboardPage({ onNavigate }) {
     .filter(t => (t.ID||'').toUpperCase()==='EN' && (t.INVOICE_DATE||'').startsWith(monthStr))
     .reduce((s,t) => s+parseFloat(t.RATE||0), 0);
   const earnCount = txs.filter(t => (t.ID||'').toUpperCase()==='EN').length;
-
-  // QR value = SERIALNO
-  const qrValue = user.serialNo || '';
 
   const quickLinks = [
     { label:'Transaction History', sub:'All point activities', icon:'◈', page:'transactions' },
