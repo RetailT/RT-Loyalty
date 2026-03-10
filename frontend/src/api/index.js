@@ -7,6 +7,12 @@ function getSlug() {
   if (host === 'localhost' || host === '127.0.0.1' || parts.length < 2) {
     return new URLSearchParams(window.location.search).get('shop') || 'keells-nugegoda';
   }
+  
+  // Vercel preview URLs ignore කරන්න
+  if (host.includes('vercel.app')) {
+    return new URLSearchParams(window.location.search).get('shop') || 'keells-nugegoda';
+  }
+  
   return parts[0];
 }
 

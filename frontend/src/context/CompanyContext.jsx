@@ -7,11 +7,16 @@ const API = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 function getSlug() {
   const host  = window.location.hostname;
   const parts = host.split('.');
-  // Dev: localhost?shop=keells-nugegoda  OR  X-Shop-Slug header
   if (host === 'localhost' || host === '127.0.0.1' || parts.length < 2) {
     return new URLSearchParams(window.location.search).get('shop') || 'keells-nugegoda';
   }
-  return parts[0]; // keells-nugegoda.retailpos.lk → 'keells-nugegoda'
+  
+  // Vercel preview URLs ignore 
+  if (host.includes('vercel.app')) {
+    return new URLSearchParams(window.location.search).get('shop') || 'keells-nugegoda';
+  }
+  
+  return parts[0];
 }
 
 export function CompanyProvider({ children }) {
