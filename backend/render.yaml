@@ -1,0 +1,56 @@
+services:
+  - type: web
+    name: retail-loyalty-backend
+    runtime: node
+    region: sri lanka
+    plan: free
+    buildCommand: npm install
+    startCommand: node api/index.js
+    healthCheckPath: /api/debug/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DB_SERVER
+        sync: false
+      - key: DB_PORT
+        sync: false
+      - key: DB_DATABASE
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_ENCRYPT
+        value: false
+      - key: DB_TRUST_SERVER_CERTIFICATE
+        value: true
+      - key: LOYALTY_DB_DATABASE
+        sync: false
+      - key: LOYALTY_DB_USER
+        sync: false
+      - key: LOYALTY_DB_PASSWORD
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: MAIL_HOST
+        value: smtp.gmail.com
+      - key: MAIL_PORT
+        value: 587
+      - key: MAIL_USER
+        sync: false
+      - key: MAIL_PASS
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      - key: OTP_EXPIRES_MINUTES
+        value: 5
+      - key: MAIN_DOMAIN
+        value: rtpos.lk
+      - key: FRONTEND_URL
+        sync: false
+      - key: PORTAL_FRONTEND_URL
+        sync: false
