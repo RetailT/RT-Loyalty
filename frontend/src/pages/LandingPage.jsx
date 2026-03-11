@@ -1,7 +1,28 @@
-// src/pages/LandingPage.jsx
 import React from 'react';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme, useCardHover } from '../context/ThemeContext';
 import useResponsive from '../hooks/useResponsive';
+
+function BenefitCard({ b }) {
+  const { cardProps } = useCardHover({ borderRadius:16, padding:20 });
+  return (
+    <div {...cardProps}>
+      <div style={{ fontSize:28, marginBottom:12 }}>{b.icon}</div>
+      <div style={{ color:'inherit', fontWeight:700, fontSize:13, marginBottom:6 }}>{b.title}</div>
+      <div style={{ fontSize:12, lineHeight:1.6 }}>{b.desc}</div>
+    </div>
+  );
+}
+
+function TierCard({ t }) {
+  const { cardProps } = useCardHover({ borderRadius:16, padding:'24px 20px', textAlign:'center' });
+  return (
+    <div {...cardProps}>
+      <div style={{ width:52, height:52, margin:'0 auto 14px', background:t.color, borderRadius:14, display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, boxShadow:'0 6px 20px rgba(0,0,0,0.2)' }}>{t.icon}</div>
+      <div style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:15, letterSpacing:1, marginTop:8 }}>{t.name}</div>
+    </div>
+  );
+}
+
 export default function LandingPage({ onNavigate }) {
   const { theme, mode } = useTheme();
   const { isMobile }    = useResponsive();
@@ -37,13 +58,13 @@ export default function LandingPage({ onNavigate }) {
           </p>
           <div style={{ display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap' }}>
             <button onClick={() => onNavigate('login')} style={{ padding:'14px 32px', borderRadius:10, background:'linear-gradient(135deg,#FF6B00,#FF8C00)', border:'none', color:'#fff', fontFamily:"'Space Mono',monospace", fontSize:11, letterSpacing:2, textTransform:'uppercase', cursor:'pointer', boxShadow:'0 8px 32px rgba(255,107,0,0.35)', transition:'all 0.2s' }}
-            onMouseEnter={e => e.currentTarget.style.transform='translateY(-2px)'}
-            onMouseLeave={e => e.currentTarget.style.transform='translateY(0)'}>
+              onMouseEnter={e => e.currentTarget.style.transform='translateY(-2px)'}
+              onMouseLeave={e => e.currentTarget.style.transform='translateY(0)'}>
               Login to Account →
             </button>
             <button onClick={() => onNavigate('login')} style={{ padding:'14px 32px', borderRadius:10, background:'transparent', border:`1px solid ${theme.border}`, color:theme.textSub, fontFamily:"'Space Mono',monospace", fontSize:11, letterSpacing:2, textTransform:'uppercase', cursor:'pointer', transition:'all 0.2s' }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor='#FF6B00'; e.currentTarget.style.color='#FF6B00'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor=theme.border; e.currentTarget.style.color=theme.textSub; }}>
+              onMouseEnter={e => { e.currentTarget.style.borderColor='#FF6B00'; e.currentTarget.style.color='#FF6B00'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor=theme.border; e.currentTarget.style.color=theme.textSub; }}>
               Check My Points 📱
             </button>
           </div>
@@ -65,15 +86,7 @@ export default function LandingPage({ onNavigate }) {
           <p style={{ color:theme.textMuted, fontSize:13 }}>Everything you need to make every rupee count</p>
         </div>
         <div style={{ display:'grid', gridTemplateColumns: isMobile?'1fr 1fr':'repeat(4,1fr)', gap:16 }}>
-          {benefits.map(b => (
-            <div key={b.title} style={{ background:theme.bgCard, border:`1px solid ${theme.border}`, borderRadius:16, padding:20, transition:'border-color 0.2s' }}
-            onMouseEnter={e => e.currentTarget.style.borderColor='rgba(255,107,0,0.4)'}
-            onMouseLeave={e => e.currentTarget.style.borderColor=theme.border}>
-              <div style={{ fontSize:28, marginBottom:12 }}>{b.icon}</div>
-              <div style={{ color:theme.text, fontWeight:700, fontSize:13, marginBottom:6 }}>{b.title}</div>
-              <div style={{ color:theme.textMuted, fontSize:12, lineHeight:1.6 }}>{b.desc}</div>
-            </div>
-          ))}
+          {benefits.map(b => <BenefitCard key={b.title} b={b} />)}
         </div>
       </section>
 
@@ -85,12 +98,7 @@ export default function LandingPage({ onNavigate }) {
             <p style={{ color:theme.textMuted, fontSize:13 }}>Choose the right card for your lifestyle</p>
           </div>
           <div style={{ display:'grid', gridTemplateColumns:`repeat(${isMobile?2:4},1fr)`, gap:16 }}>
-            {loyaltyTypes.map(t => (
-              <div key={t.name} style={{ background:theme.bgCard, border:`1px solid ${theme.border}`, borderRadius:16, padding:'24px 20px', textAlign:'center' }}>
-                <div style={{ width:52, height:52, margin:'0 auto 14px', background:t.color, borderRadius:14, display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, boxShadow:'0 6px 20px rgba(0,0,0,0.2)' }}>{t.icon}</div>
-                <div style={{ color:theme.text, fontFamily:"'Bebas Neue',sans-serif", fontSize:15, letterSpacing:1, marginTop:8 }}>{t.name}</div>
-              </div>
-            ))}
+            {loyaltyTypes.map(t => <TierCard key={t.name} t={t} />)}
           </div>
         </div>
       </section>
@@ -101,8 +109,8 @@ export default function LandingPage({ onNavigate }) {
           <h2 style={{ color:'#fff', fontFamily:"'Bebas Neue',sans-serif", fontSize: isMobile?36:48, letterSpacing:3, marginBottom:12 }}>START EARNING TODAY</h2>
           <p style={{ color:'rgba(255,255,255,0.8)', fontSize:14, marginBottom:28 }}>Sign in with your mobile number. No password required.</p>
           <button onClick={() => onNavigate('login')} style={{ padding:'14px 36px', borderRadius:10, background:'#fff', border:'none', color:'#FF6B00', fontFamily:"'Space Mono',monospace", fontSize:12, letterSpacing:2, textTransform:'uppercase', fontWeight:700, cursor:'pointer', boxShadow:'0 8px 24px rgba(0,0,0,0.15)', transition:'transform 0.2s' }}
-          onMouseEnter={e => e.currentTarget.style.transform='translateY(-2px)'}
-          onMouseLeave={e => e.currentTarget.style.transform='translateY(0)'}>
+            onMouseEnter={e => e.currentTarget.style.transform='translateY(-2px)'}
+            onMouseLeave={e => e.currentTarget.style.transform='translateY(0)'}>
             Login Now — It's Free →
           </button>
         </div>

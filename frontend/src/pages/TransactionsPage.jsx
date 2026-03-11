@@ -1,7 +1,6 @@
-// src/pages/TransactionsPage.jsx — POSBACK data
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme, useCardHover } from '../context/ThemeContext';
 import useResponsive from '../hooks/useResponsive';
 import { getMyTransactions } from '../api';
 
@@ -9,6 +8,16 @@ const TYPE_META = {
   en: { label:'EARNED',   icon:'🛒', type:'earn'   },
   rd: { label:'REDEEMED', icon:'🎁', type:'redeem' },
 };
+
+function SummaryCard({ label, value, color, bg, border }) {
+  const { cardProps } = useCardHover({ borderRadius:14 });
+  return (
+    <div {...cardProps} style={{ ...cardProps.style, cursor:'default', background: bg, border:`1px solid ${border}`, padding:'14px 16px' }}>
+      <div style={{ color:'#888', fontSize:10, fontFamily:"'Space Mono',monospace", letterSpacing:2, textTransform:'uppercase', marginBottom:6 }}>{label}</div>
+      <div style={{ color, fontFamily:"'Bebas Neue',sans-serif", fontSize:28, letterSpacing:2, lineHeight:1 }}>{value} <span style={{ fontSize:14 }}>PTS</span></div>
+    </div>
+  );
+}
 
 export default function TransactionsPage() {
   const { token }           = useAuth();
@@ -52,15 +61,8 @@ export default function TransactionsPage() {
 
       {/* Summary */}
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:20 }}>
-        {[
-          { label:'Total Earned',   value:`+${totalEarned.toFixed(2)}`,   color:theme.successText, bg:theme.successBg, border:theme.successBorder },
-          { label:'Total Redeemed', value:`-${totalRedeemed.toFixed(2)}`, color:theme.redText,     bg:theme.errorBg,   border:theme.errorBorder   },
-        ].map(s => (
-          <div key={s.label} style={{ background:s.bg, border:`1px solid ${s.border}`, borderRadius:14, padding: isMobile?'14px 16px':'18px 20px' }}>
-            <div style={{ color:theme.textMuted, fontSize:10, fontFamily:"'Space Mono',monospace", letterSpacing:2, textTransform:'uppercase', marginBottom:6 }}>{s.label}</div>
-            <div style={{ color:s.color, fontFamily:"'Bebas Neue',sans-serif", fontSize: isMobile?28:36, letterSpacing:2, lineHeight:1 }}>{s.value} <span style={{ fontSize:14 }}>PTS</span></div>
-          </div>
-        ))}
+        <SummaryCard label="Total Earned"   value={`+${totalEarned.toFixed(2)}`}   color={theme.successText} bg={theme.successBg} border={theme.successBorder} />
+        <SummaryCard label="Total Redeemed" value={`-${totalRedeemed.toFixed(2)}`} color={theme.redText}     bg={theme.errorBg}   border={theme.errorBorder}   />
       </div>
 
       {/* Filters */}

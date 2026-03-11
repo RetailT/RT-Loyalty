@@ -1,4 +1,3 @@
-// utils/mailer.js
 const nodemailer = require('nodemailer');
 
 const OTP_TTL_MIN = parseInt(process.env.OTP_EXPIRES_MINUTES) || 5;

@@ -1,4 +1,3 @@
-// middleware/portalAuthMiddleware.js
 const jwt = require('jsonwebtoken');
 
 const portalProtect = (req, res, next) => {

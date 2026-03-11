@@ -1,4 +1,3 @@
-// routes/debug.js  —  /api/debug/*
 const express = require('express');
 const router  = express.Router();
 const { getPool, sql }    = require('../config/database');

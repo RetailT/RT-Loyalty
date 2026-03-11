@@ -1,11 +1,40 @@
-// src/pages/RewardsPage.jsx — Real API
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme, useCardHover } from '../context/ThemeContext';
 import useResponsive from '../hooks/useResponsive';
 import { getRewards, redeemReward } from '../api';
 
 const ICON_MAP = { Voucher:'🎟️', Food:'🍦', Discount:'💰', Gift:'🎁', Coffee:'☕', Drink:'🥤' };
+
+function RewardCard({ reward, pts, onRedeem, redeemingId }) {
+  const { cardProps } = useCardHover({ borderRadius:16, padding:20 });
+  const affordable = pts >= (reward.POINTS_COST||0);
+  const busy       = redeemingId === reward.IDX;
+  const icon       = ICON_MAP[reward.CATEGORY] || '🎁';
+
+  return (
+    <div {...cardProps} style={{ ...cardProps.style, cursor:'default' }}>
+      <div style={{ display:'flex', gap:16, marginBottom:16 }}>
+        <div style={{ width:56, height:56, borderRadius:14, flexShrink:0, background:'rgba(255,107,0,0.08)', border:'1px solid rgba(255,107,0,0.15)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:28 }}>{icon}</div>
+        <div>
+          <div style={{ fontWeight:700, fontSize:14, marginBottom:4 }}>{reward.TITLE}</div>
+          <div style={{ display:'inline-block', background:'rgba(255,107,0,0.08)', border:'1px solid rgba(255,107,0,0.2)', borderRadius:4, padding:'2px 8px', color:'#FF6B00', fontSize:10, fontFamily:"'Space Mono',monospace", letterSpacing:1, textTransform:'uppercase', marginBottom:4 }}>{reward.CATEGORY}</div>
+          <div style={{ color: affordable?'#FF6B00':'#888', fontFamily:"'Bebas Neue',sans-serif", fontSize:22, letterSpacing:1 }}>{(reward.POINTS_COST||0).toLocaleString()} PTS</div>
+        </div>
+      </div>
+      {reward.DESCRIPTION && <p style={{ fontSize:12, lineHeight:1.5, marginBottom:12, opacity:0.7 }}>{reward.DESCRIPTION}</p>}
+      {reward.VALID_UNTIL  && <p style={{ fontSize:10, fontFamily:"'Space Mono',monospace", marginBottom:12, opacity:0.5 }}>Valid until {reward.VALID_UNTIL?.slice(0,10)}</p>}
+      <button onClick={() => affordable && !busy && onRedeem(reward)} disabled={!affordable||busy}
+        style={{ width:'100%', padding:'12px', background: affordable?'linear-gradient(135deg,#FF6B00,#FF8C00)':'rgba(255,255,255,0.05)', border:`1px solid ${affordable?'transparent':'rgba(255,255,255,0.1)'}`, borderRadius:10, color: affordable?'#fff':'#666', fontFamily:"'Space Mono',monospace", fontSize:11, letterSpacing:2, textTransform:'uppercase', cursor: affordable&&!busy?'pointer':'not-allowed', boxShadow: affordable?'0 6px 20px rgba(255,107,0,0.25)':'none', display:'flex', alignItems:'center', justifyContent:'center', gap:8, transition:'all 0.2s' }}>
+        {busy
+          ? <><Spin />Redeeming...</>
+          : affordable
+            ? 'Redeem Now'
+            : `Need ${((reward.POINTS_COST||0)-pts).toLocaleString()} more pts`}
+      </button>
+    </div>
+  );
+}
 
 export default function RewardsPage() {
   const { token, user, refreshUser } = useAuth();
@@ -65,7 +94,6 @@ export default function RewardsPage() {
         <div style={{ fontSize:40, opacity:0.9 }}>💰</div>
       </div>
 
-      {/* Alerts */}
       {success && <div style={{ background:theme.successBg, border:`1px solid ${theme.successBorder}`, borderRadius:10, padding:'12px 16px', color:theme.successText, fontSize:12, fontFamily:"'Space Mono',monospace", marginBottom:16 }}>✓ {success}</div>}
       {error   && <div style={{ background:theme.errorBg,   border:`1px solid ${theme.errorBorder}`,   borderRadius:10, padding:'12px 16px', color:theme.errorText,   fontSize:12, fontFamily:"'Space Mono',monospace", marginBottom:16 }}>⚠ {error}</div>}
 
@@ -78,35 +106,9 @@ export default function RewardsPage() {
         </div>
       ) : (
         <div style={{ display:'grid', gridTemplateColumns:`repeat(${isMobile?1:2},1fr)`, gap:16 }}>
-          {rewards.map(reward => {
-            const affordable = pts >= (reward.POINTS_COST||0);
-            const busy       = redeemingId === reward.IDX;
-            const icon       = ICON_MAP[reward.CATEGORY] || '🎁';
-            return (
-              <div key={reward.IDX} style={{ background:theme.bgCard, border:`1px solid ${theme.border}`, borderRadius:16, padding:20, transition:'all 0.2s' }}
-              onMouseEnter={e => e.currentTarget.style.borderColor='rgba(255,107,0,0.3)'}
-              onMouseLeave={e => e.currentTarget.style.borderColor=theme.border}>
-                <div style={{ display:'flex', gap:16, marginBottom:16 }}>
-                  <div style={{ width:56, height:56, borderRadius:14, flexShrink:0, background:theme.bgAccent, border:`1px solid ${theme.border}`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:28 }}>{icon}</div>
-                  <div>
-                    <div style={{ color:theme.text, fontWeight:700, fontSize:14, marginBottom:4 }}>{reward.TITLE}</div>
-                    <div style={{ display:'inline-block', background:'rgba(255,107,0,0.08)', border:'1px solid rgba(255,107,0,0.2)', borderRadius:4, padding:'2px 8px', color:'#FF6B00', fontSize:10, fontFamily:"'Space Mono',monospace", letterSpacing:1, textTransform:'uppercase', marginBottom:4 }}>{reward.CATEGORY}</div>
-                    <div style={{ color: affordable?'#FF6B00':theme.textFaint, fontFamily:"'Bebas Neue',sans-serif", fontSize:22, letterSpacing:1 }}>{(reward.POINTS_COST||0).toLocaleString()} PTS</div>
-                  </div>
-                </div>
-                {reward.DESCRIPTION && <p style={{ color:theme.textMuted, fontSize:12, lineHeight:1.5, marginBottom:12 }}>{reward.DESCRIPTION}</p>}
-                {reward.VALID_UNTIL && <p style={{ color:theme.textFaint, fontSize:10, fontFamily:"'Space Mono',monospace", marginBottom:12 }}>Valid until {reward.VALID_UNTIL?.slice(0,10)}</p>}
-                <button onClick={() => affordable && !busy && handleRedeem(reward)} disabled={!affordable||busy}
-                  style={{ width:'100%', padding:'12px', background: affordable?'linear-gradient(135deg,#FF6B00,#FF8C00)':theme.bgAccent, border:`1px solid ${affordable?'transparent':theme.border}`, borderRadius:10, color: affordable?'#fff':theme.textFaint, fontFamily:"'Space Mono',monospace", fontSize:11, letterSpacing:2, textTransform:'uppercase', cursor: affordable&&!busy?'pointer':'not-allowed', boxShadow: affordable?'0 6px 20px rgba(255,107,0,0.25)':'none', display:'flex', alignItems:'center', justifyContent:'center', gap:8, transition:'all 0.2s' }}>
-                  {busy
-                    ? <><Spin />Redeeming...</>
-                    : affordable
-                      ? 'Redeem Now'
-                      : `Need ${((reward.POINTS_COST||0)-pts).toLocaleString()} more pts`}
-                </button>
-              </div>
-            );
-          })}
+          {rewards.map(reward => (
+            <RewardCard key={reward.IDX} reward={reward} pts={pts} onRedeem={handleRedeem} redeemingId={redeemingId} />
+          ))}
         </div>
       )}
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>

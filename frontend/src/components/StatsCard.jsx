@@ -1,4 +1,3 @@
-// src/components/StatsCard.jsx
 import React, { useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
 

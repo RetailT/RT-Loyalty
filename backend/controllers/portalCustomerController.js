@@ -1,4 +1,3 @@
-// controllers/portalCustomerController.js — POSBACK_CODE filtered + Security fixes
 const { getPosbackPool, getLoyaltyPool, sql } = require('../config/userdb');
 
 async function getPointsSummary(posPool, serialNo, posbackCode) {

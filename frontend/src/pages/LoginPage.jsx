@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme, useCardHover } from '../context/ThemeContext';
 import useResponsive from '../hooks/useResponsive';
 import { sendOTP, verifyOTP } from '../api';
 
@@ -8,6 +8,7 @@ export default function LoginPage({ onNavigate }) {
   const { login }        = useAuth();
   const { theme, mode }  = useTheme();
   const { isMobile }     = useResponsive();
+  const { cardProps }    = useCardHover({ borderRadius: 20, padding: isMobile ? '28px 20px' : '36px 32px' });
 
   const [step, setStep]       = useState('phone');
   const [phone, setPhone]     = useState('');
@@ -92,10 +93,11 @@ export default function LoginPage({ onNavigate }) {
       padding: isMobile ? '24px 16px' : '48px 16px',
     }}>
       <div style={{ width: '100%', maxWidth: 420 }}>
-        <div style={{
-          background: theme.bgCard, border: `1px solid ${theme.border}`,
-          borderRadius: 20, padding: isMobile ? '28px 20px' : '36px 32px',
-          boxShadow: '0 24px 80px rgba(0,0,0,0.12)',
+
+        {/* ── Card with hover effect ── */}
+        <div {...cardProps} style={{
+          ...cardProps.style,
+          cursor: 'default', // login card click cursor default
         }}>
 
           {/* Logo */}

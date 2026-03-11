@@ -1,4 +1,3 @@
-// src/utils/tierConfig.js
 export const TIER_CONFIG = {
   Bronze:   { color:'#92400e', gradient:'linear-gradient(135deg,#92400e,#b45309)', nextPoints:5000,  next:'Silver',   icon:'🥉', min:0     },
   Silver:   { color:'#475569', gradient:'linear-gradient(135deg,#475569,#64748b)', nextPoints:10000, next:'Gold',     icon:'🥈', min:5000  },

@@ -1,7 +1,6 @@
-// src/pages/ProfilePage.jsx — POSBACK data
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme, useCardHover } from '../context/ThemeContext';
 import useResponsive from '../hooks/useResponsive';
 import { updateMe } from '../api';
 
@@ -9,6 +8,10 @@ export default function ProfilePage({ onNavigate }) {
   const { user, token, logout, refreshUser } = useAuth();
   const { theme, mode } = useTheme();
   const { isMobile }    = useResponsive();
+
+  const { cardProps: avatarCardProps }   = useCardHover({ borderRadius:16, padding: isMobile?'16px':'20px 24px', display:'flex', alignItems:'center', gap:16, marginBottom:16 });
+  const { cardProps: infoCardProps }     = useCardHover({ borderRadius:16, padding: isMobile?'16px':'20px 24px', marginBottom:16 });
+  const { cardProps: summaryCardProps }  = useCardHover({ borderRadius:16, padding: isMobile?'16px':'20px 24px', marginBottom:16 });
 
   const [editing, setEditing] = useState(false);
   const [saving,  setSaving]  = useState(false);
@@ -59,7 +62,7 @@ export default function ProfilePage({ onNavigate }) {
       </div>
 
       {/* Avatar card */}
-      <div style={{ background:theme.bgCard, border:`1px solid ${theme.border}`, borderRadius:16, padding: isMobile?'16px':'20px 24px', display:'flex', alignItems:'center', gap:16, marginBottom:16 }}>
+      <div {...avatarCardProps} style={{ ...avatarCardProps.style, cursor:'default' }}>
         <div style={{ width:60, height:60, borderRadius:16, flexShrink:0, background:'linear-gradient(135deg,#FF6B00,#FF8C00)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:26, fontWeight:900, color:'#fff', fontFamily:"'Bebas Neue',sans-serif", boxShadow:'0 8px 24px rgba(255,107,0,0.35)' }}>
           {user.name?.charAt(0)||'U'}
         </div>
@@ -77,25 +80,42 @@ export default function ProfilePage({ onNavigate }) {
         </div>
       </div>
 
-      {/* Alerts */}
       {saved && <div style={{ background:theme.successBg, border:`1px solid ${theme.successBorder}`, borderRadius:10, padding:'12px 16px', color:theme.successText, fontSize:12, fontFamily:"'Space Mono',monospace", marginBottom:16 }}>✓ Profile updated successfully</div>}
       {error && <div style={{ background:theme.errorBg,   border:`1px solid ${theme.errorBorder}`,   borderRadius:10, padding:'12px 16px', color:theme.errorText,   fontSize:12, fontFamily:"'Space Mono',monospace", marginBottom:16 }}>⚠ {error}</div>}
 
       {/* Editable fields */}
-      <div style={{ background:theme.bgCard, border:`1px solid ${theme.border}`, borderRadius:16, padding: isMobile?'16px':'20px 24px', marginBottom:16 }}>
+      <div {...infoCardProps} style={{ ...infoCardProps.style, cursor:'default' }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
             <span style={{ color:'#FF6B00' }}>◈</span>
             <span style={{ color:theme.text, fontWeight:700, fontSize:13 }}>Personal Information</span>
           </div>
-          <button onClick={() => editing ? handleSave() : setEditing(true)} disabled={saving} style={{
-            background: editing?'linear-gradient(135deg,#FF6B00,#FF8C00)':theme.bgAccent,
-            border:`1px solid ${editing?'transparent':theme.border}`,
-            borderRadius:8, padding:'7px 16px',
-            color: editing?'#fff':theme.textMuted,
-            fontFamily:"'Space Mono',monospace", fontSize:10, letterSpacing:1, textTransform:'uppercase',
-            cursor:'pointer', transition:'all 0.2s',
-          }}>
+          <button 
+            onClick={() => editing ? handleSave() : setEditing(true)} 
+            disabled={saving}
+            onMouseEnter={e => {
+              if (!editing) {
+                e.currentTarget.style.background = 'linear-gradient(135deg,#FF6B00,#FF8C00)';
+                e.currentTarget.style.borderColor = 'transparent';
+                e.currentTarget.style.color = '#fff';
+              }
+            }}
+            onMouseLeave={e => {
+              if (!editing) {
+                e.currentTarget.style.background = theme.bgAccent;
+                e.currentTarget.style.borderColor = theme.border;
+                e.currentTarget.style.color = theme.textMuted;
+              }
+            }}
+            style={{
+              background: editing ? 'linear-gradient(135deg,#FF6B00,#FF8C00)' : theme.bgAccent,
+              border: `1px solid ${editing ? 'transparent' : theme.border}`,
+              borderRadius: 8, padding: '7px 16px',
+              color: editing ? '#fff' : theme.textMuted,
+              fontFamily: "'Space Mono',monospace", fontSize: 10, 
+              letterSpacing: 1, textTransform: 'uppercase',
+              cursor: 'pointer', transition: 'all 0.2s',
+            }}>
             {saving ? 'Saving...' : editing ? 'Save Changes' : 'Edit Profile'}
           </button>
         </div>
@@ -119,8 +139,8 @@ export default function ProfilePage({ onNavigate }) {
         )}
       </div>
 
-      {/* Read-only account summary */}
-      <div style={{ background:theme.bgCard, border:`1px solid ${theme.border}`, borderRadius:16, padding: isMobile?'16px':'20px 24px', marginBottom:16 }}>
+      {/* Account summary */}
+      <div {...summaryCardProps} style={{ ...summaryCardProps.style, cursor:'default' }}>
         <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:16 }}>
           <span style={{ color:'#FF6B00' }}>◫</span>
           <span style={{ color:theme.text, fontWeight:700, fontSize:13 }}>Account Summary</span>

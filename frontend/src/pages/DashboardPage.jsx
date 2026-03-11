@@ -1,7 +1,6 @@
-// src/pages/DashboardPage.jsx — POSBACK data
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme, useCardHover } from '../context/ThemeContext';
 import useResponsive from '../hooks/useResponsive';
 import StatsCard from '../components/StatsCard';
 import { getMyTransactions } from '../api';
@@ -38,6 +37,18 @@ function QRDisplay({ value, size = 160 }) {
   );
 }
 
+// Quick link card with hover
+function QuickLinkCard({ q, onNavigate }) {
+  const { cardProps } = useCardHover({ borderRadius:14, padding:'16px 14px', textAlign:'left' });
+  return (
+    <button onClick={() => onNavigate(q.page)} {...cardProps} style={{ ...cardProps.style, width:'100%', border: cardProps.style.border }}>
+      <div style={{ fontSize:20, color:'#FF6B00', marginBottom:8 }}>{q.icon}</div>
+      <div style={{ color:'inherit', fontWeight:700, fontSize:12, marginBottom:2 }}>{q.label}</div>
+      <div style={{ fontSize:10, fontFamily:"'Space Mono',monospace" }}>{q.sub}</div>
+    </button>
+  );
+}
+
 export default function DashboardPage({ onNavigate }) {
   const { user, token }  = useAuth();
   const { theme }        = useTheme();
@@ -58,7 +69,6 @@ export default function DashboardPage({ onNavigate }) {
   const avail   = user.availablePoints || 0;
   const lifePts = user.totalPoints     || 0;
 
-  // Calculate this month points from transactions
   const now = new Date();
   const monthStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   const thisMonthPts = txs
@@ -84,10 +94,8 @@ export default function DashboardPage({ onNavigate }) {
         </h1>
       </div>
 
-      {/* Points Hero + QR */}
+      {/* Points Hero */}
       <div style={{ display:'grid', gridTemplateColumns: isMobile?'1fr':'1fr auto', gap:16, marginBottom:20, alignItems:'stretch' }}>
-
-        {/* Points Hero */}
         <div style={{ background:'linear-gradient(135deg,#FF6B00,#FF8C00)', borderRadius:20, padding: isMobile?20:28, position:'relative', overflow:'hidden', boxShadow:'0 16px 48px rgba(255,107,0,0.3)' }}>
           <div style={{ position:'absolute', top:-30, right:-30, width:140, height:140, background:'rgba(255,255,255,0.05)', borderRadius:'50%' }} />
           <div style={{ position:'absolute', bottom:-20, left:-20, width:100, height:100, background:'rgba(0,0,0,0.1)', borderRadius:'50%' }} />
@@ -106,18 +114,6 @@ export default function DashboardPage({ onNavigate }) {
             </div>
           </div>
         </div>
-
-        {/* QR Code Card */}
-        {/* {qrValue && (
-          <div style={{ background:theme.bgCard, border:`1px solid ${theme.border}`, borderRadius:20, padding:20, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:12, minWidth: isMobile?'auto':200, cursor:'pointer', transition:'all 0.2s' }}
-            onClick={() => setShowQR(true)}
-            onMouseEnter={e => { e.currentTarget.style.borderColor='rgba(255,107,0,0.4)'; e.currentTarget.style.transform='translateY(-2px)'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor=theme.border; e.currentTarget.style.transform='translateY(0)'; }}>
-            <div style={{ color:theme.textMuted, fontSize:10, letterSpacing:2, textTransform:'uppercase', fontFamily:"'Space Mono',monospace" }}>My QR Code</div>
-            <QRDisplay value={qrValue} size={isMobile?120:140} />
-            <div style={{ color:theme.textFaint, fontSize:10, fontFamily:"'Space Mono',monospace", textAlign:'center' }}>Tap to enlarge</div>
-          </div>
-        )} */}
       </div>
 
       {/* Stats */}
@@ -130,13 +126,7 @@ export default function DashboardPage({ onNavigate }) {
       {/* Quick Links */}
       <div style={{ display:'grid', gridTemplateColumns:`repeat(${isMobile?2:4},1fr)`, gap:12, marginBottom:24 }}>
         {quickLinks.map(q => (
-          <button key={q.page} onClick={() => onNavigate(q.page)} style={{ background:theme.bgCard, border:`1px solid ${theme.border}`, borderRadius:14, padding:'16px 14px', cursor:'pointer', textAlign:'left', transition:'all 0.2s' }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor='rgba(255,107,0,0.4)'; e.currentTarget.style.transform='translateY(-2px)'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor=theme.border; e.currentTarget.style.transform='translateY(0)'; }}>
-            <div style={{ fontSize:20, color:'#FF6B00', marginBottom:8 }}>{q.icon}</div>
-            <div style={{ color:theme.text, fontWeight:700, fontSize:12, marginBottom:2 }}>{q.label}</div>
-            <div style={{ color:theme.textFaint, fontSize:10, fontFamily:"'Space Mono',monospace" }}>{q.sub}</div>
-          </button>
+          <QuickLinkCard key={q.page} q={q} onNavigate={onNavigate} />
         ))}
       </div>
 
@@ -173,22 +163,6 @@ export default function DashboardPage({ onNavigate }) {
           );
         })}
       </div>
-
-      {/* QR Modal */}
-      {/* {showQR && (
-        <div onClick={() => setShowQR(false)} style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.75)', backdropFilter:'blur(6px)', display:'flex', alignItems:'center', justifyContent:'center', padding:24 }}>
-          <div onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:24, padding:32, textAlign:'center', boxShadow:'0 32px 80px rgba(0,0,0,0.3)', maxWidth:320, width:'100%' }}>
-            <div style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:22, letterSpacing:2, color:'#111', marginBottom:4 }}>MY QR CODE</div>
-            <div style={{ color:'#888', fontSize:11, fontFamily:"'Space Mono',monospace", marginBottom:20 }}>{user.serialNo}</div>
-            <div style={{ display:'flex', justifyContent:'center', marginBottom:20 }}>
-              <QRDisplay value={qrValue} size={220} />
-            </div>
-            <div style={{ color:'#FF6B00', fontFamily:"'Bebas Neue',sans-serif", fontSize:18, letterSpacing:2, marginBottom:4 }}>{user.name}</div>
-            <div style={{ color:'#888', fontSize:11, fontFamily:"'Space Mono',monospace", marginBottom:20 }}>{user.loyaltyType}</div>
-            <button onClick={() => setShowQR(false)} style={{ width:'100%', padding:'12px', background:'linear-gradient(135deg,#FF6B00,#FF8C00)', border:'none', borderRadius:10, color:'#fff', fontFamily:"'Space Mono',monospace", fontSize:11, letterSpacing:2, textTransform:'uppercase', cursor:'pointer' }}>Close</button>
-          </div>
-        </div>
-      )} */}
 
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>

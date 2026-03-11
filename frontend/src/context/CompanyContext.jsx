@@ -1,4 +1,3 @@
-// Subdomain shop identify company info provide
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const CompanyContext = createContext();

@@ -8,7 +8,7 @@ function getSlug() {
     return new URLSearchParams(window.location.search).get('shop') || 'keells-nugegoda';
   }
   
-  // Vercel preview URLs ignore කරන්න
+  // Vercel preview URLs ignore
   if (host.includes('vercel.app')) {
     return new URLSearchParams(window.location.search).get('shop') || 'keells-nugegoda';
   }

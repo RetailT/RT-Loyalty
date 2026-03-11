@@ -1,4 +1,3 @@
-// controllers/portalAuthController.js — POSBACK_CODE filtered + Security fixes
 const { getPosbackPool, getLoyaltyPool, sql } = require('../config/userdb');
 const jwt = require('jsonwebtoken');
 

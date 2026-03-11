@@ -1,4 +1,3 @@
-// controllers/transactionController.js
 const { getLoyaltyPool, sql } = require('../config/userdb');
 const { getPool, sql: mainSql } = require('../config/database');
 
