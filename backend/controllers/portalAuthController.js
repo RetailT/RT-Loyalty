@@ -1,12 +1,15 @@
-// controllers/portalAuthController.js — POSBACK_CODE filtered
+// controllers/portalAuthController.js — POSBACK_CODE filtered + Security fixes
 const { getPosbackPool, getLoyaltyPool, sql } = require('../config/userdb');
-const crypto = require('crypto');
-const jwt    = require('jsonwebtoken');
+const jwt = require('jsonwebtoken');
 
 const JWT_SECRET  = process.env.JWT_SECRET || 'rt_loyalty_secret';
 const JWT_EXPIRES = '8h';
-const OTP_TTL_MIN = 10;
+const OTP_TTL_MIN = parseInt(process.env.OTP_EXPIRES_MINUTES) || 10;
 const IS_DEV      = process.env.NODE_ENV !== 'production';
+
+// OTP rate limit: max 2 requests per 5 minutes per phone+company
+const OTP_RATE_LIMIT_COUNT = 2;
+const OTP_RATE_LIMIT_MIN   = 5;
 
 /* ── helpers ─────────────────────────────────────────────── */
 function nowStr() { return new Date().toLocaleTimeString('en-GB'); }
@@ -17,8 +20,8 @@ async function getPointsSummary(posPool, serialNo, posbackCode) {
     .input('code', sql.Char,     posbackCode)
     .query(`
       SELECT
-        SUM(CASE WHEN ID='EN' THEN RATE ELSE 0    END) AS totalPoints,
-        SUM(CASE WHEN ID='RD' THEN RATE ELSE 0    END) AS redeemedPoints,
+        SUM(CASE WHEN ID='EN' THEN RATE ELSE 0     END) AS totalPoints,
+        SUM(CASE WHEN ID='RD' THEN RATE ELSE 0     END) AS redeemedPoints,
         SUM(CASE WHEN ID='EN' THEN RATE ELSE -RATE END) AS availablePoints
       FROM dbo.tb_LOYALTY_TRANSACTION
       WHERE SERIALNO = @sno AND COMPANY_CODE = @code AND SMS = 'T'
@@ -33,17 +36,17 @@ async function getPointsSummary(posPool, serialNo, posbackCode) {
 
 function shapeCustomer(row, points) {
   return {
-    serialNo:        row.SERIALNO,
-    name:            row.CUSTDISPLAY_NAME || row.CUSTFULL_NAME,
-    email:           row.EMAIL            || '',
-    phone:           row.MOBILENO,
-    dateOfBirth:     row.DOB              || null,
-    city:            row.CITY             || '',
-    occupation:      row.OCCUPATION       || '',
-    loyaltyType:     row.LOYALTY_TYPE     || '',
-    companyCode:     row.COMPANY_CODE,
-    companyName:     row.COMPANY_NAME,
-    isLocked:        row.CUSTOMER_LOCK === 'T',
+    serialNo:    row.SERIALNO,
+    name:        row.CUSTDISPLAY_NAME || row.CUSTFULL_NAME,
+    email:       row.EMAIL            || '',
+    phone:       row.MOBILENO,
+    dateOfBirth: row.DOB              || null,
+    city:        row.CITY             || '',
+    occupation:  row.OCCUPATION       || '',
+    loyaltyType: row.LOYALTY_TYPE     || '',
+    companyCode: row.COMPANY_CODE,
+    companyName: row.COMPANY_NAME,
+    isLocked:    row.CUSTOMER_LOCK === 'T',
     ...points,
   };
 }
@@ -51,11 +54,35 @@ function shapeCustomer(row, points) {
 /* ── sendOtp ─────────────────────────────────────────────── */
 exports.sendOtp = async (req, res) => {
   try {
-    const { phone }      = req.body;
-    const { POSBACK_CODE, COMPANY_NAME } = req.company;   // from companyMiddleware
+    const { phone }                      = req.body;
+    const { POSBACK_CODE, COMPANY_NAME } = req.company;
 
     if (!phone) return res.status(400).json({ success: false, message: 'Phone required.' });
 
+    const loyPool = await getLoyaltyPool();
+
+    // ✅ FIX 2: Rate limiting — max 2 OTPs per 5 min per phone+company
+    const rateCheck = await loyPool.request()
+      .input('phone', sql.NVarChar, phone.trim())
+      .input('code',  sql.NVarChar, POSBACK_CODE)
+      .input('mins',  sql.Int,      OTP_RATE_LIMIT_MIN)
+      .input('max',   sql.Int,      OTP_RATE_LIMIT_COUNT)
+      .query(`
+        SELECT COUNT(*) AS cnt
+        FROM dbo.tb_OTP_SESSIONS
+        WHERE PHONE = @phone
+          AND COMPANY_CODE = @code
+          AND CREATED_AT > DATEADD(MINUTE, -@mins, GETDATE())
+      `);
+
+    if (rateCheck.recordset[0].cnt >= OTP_RATE_LIMIT_COUNT) {
+      return res.status(429).json({
+        success: false,
+        message: `Too many OTP requests. Please wait ${OTP_RATE_LIMIT_MIN} minutes.`,
+      });
+    }
+
+    // Check customer exists in this company
     const posPool = await getPosbackPool();
     const found   = await posPool.request()
       .input('mob',  sql.NVarChar, phone.trim())
@@ -67,30 +94,44 @@ exports.sendOtp = async (req, res) => {
       `);
 
     if (!found.recordset.length) {
-      return res.status(404).json({ success: false, message: 'No loyalty account found for this number at ' + COMPANY_NAME + '.' });
+      return res.status(404).json({
+        success: false,
+        message: 'No loyalty account found for this number at ' + COMPANY_NAME + '.',
+      });
     }
 
     const otp     = String(Math.floor(100000 + Math.random() * 900000));
     const expires = new Date(Date.now() + OTP_TTL_MIN * 60000);
 
-    const loyPool = await getLoyaltyPool();
+    console.log('DEBUG sendOtp:', { phone: phone.trim(), POSBACK_CODE, otp });
+
+    // ✅ FIX 3: Store PHONE + COMPANY_CODE together (prevent cross-shop OTP reuse)
     await loyPool.request()
-      .input('email',   sql.NVarChar, phone.trim())
+      .input('phone',   sql.NVarChar, phone.trim())
+      .input('code',    sql.NVarChar, POSBACK_CODE)
+      .input('email',   sql.NVarChar, phone.trim()) // EMAIL = phone (backward compat)
       .input('otp',     sql.NVarChar, otp)
       .input('expires', sql.DateTime, expires)
       .query(`
         MERGE dbo.tb_OTP_SESSIONS AS T
-        USING (SELECT @email AS EMAIL) AS S ON T.EMAIL = S.EMAIL
-        WHEN MATCHED THEN UPDATE SET OTP = @otp, EXPIRES_AT = @expires, CREATED_AT = GETDATE()
-        WHEN NOT MATCHED THEN INSERT (EMAIL, OTP, EXPIRES_AT) VALUES (@email, @otp, @expires);
+        USING (SELECT @phone AS PHONE, @code AS COMPANY_CODE) AS S
+          ON T.PHONE = S.PHONE AND T.COMPANY_CODE = S.COMPANY_CODE
+        WHEN MATCHED THEN
+          UPDATE SET OTP = @otp, EXPIRES_AT = @expires, CREATED_AT = GETDATE()
+        WHEN NOT MATCHED THEN
+          INSERT (EMAIL, PHONE, COMPANY_CODE, OTP, EXPIRES_AT, CREATED_AT)
+          VALUES (@email, @phone, @code, @otp, @expires, GETDATE());
       `);
 
-    const hasEmail = !!(found.recordset[0].EMAIL || '').trim();
+    const custRow = found.recordset[0];
+    const hasEmail = !!(custRow.EMAIL || '').trim();
+
     if (hasEmail) {
-      // TODO: send real email
-      console.log(`📧 OTP for ${phone} @ ${found.recordset[0].COMPANY_NAME || COMPANY_NAME}: ${otp}`);
+      console.log(`📧 OTP for ${phone} @ ${custRow.COMPANY_NAME || COMPANY_NAME}: ${otp}`);
+      // TODO: sendOtpEmail(custRow.EMAIL, otp, custRow.CUSTDISPLAY_NAME);
     } else {
-      console.log(`📱 OTP for ${phone} @ ${found.recordset[0].COMPANY_NAME || COMPANY_NAME}: ${otp} (no email on file)`);
+      console.log(`📱 OTP for ${phone} @ ${custRow.COMPANY_NAME || COMPANY_NAME}: ${otp}`);
+      // TODO: sendOtpSMS(phone, otp, custRow.COMPANY_NAME || COMPANY_NAME);
     }
 
     res.json({ success: true, hasEmail, ...(IS_DEV ? { dev_otp: otp } : {}) });
@@ -103,27 +144,42 @@ exports.sendOtp = async (req, res) => {
 /* ── verifyOtp ───────────────────────────────────────────── */
 exports.verifyOtp = async (req, res) => {
   try {
-    const { phone, otp }             = req.body;
+    const { phone, otp }                 = req.body;
     const { POSBACK_CODE, COMPANY_NAME } = req.company;
 
-    if (!phone || !otp) return res.status(400).json({ success: false, message: 'Phone and OTP required.' });
+    if (!phone || !otp)
+      return res.status(400).json({ success: false, message: 'Phone and OTP required.' });
 
     const loyPool = await getLoyaltyPool();
-    const sess    = await loyPool.request()
-      .input('email', sql.NVarChar, phone.trim())
-      .query(`SELECT TOP 1 OTP, EXPIRES_AT FROM dbo.tb_OTP_SESSIONS WHERE EMAIL = @email`);
 
-    if (!sess.recordset.length) return res.status(400).json({ success: false, message: 'No OTP found. Request a new one.' });
+    // ✅ FIX 3: Verify OTP by phone + company (not phone alone)
+    const sess = await loyPool.request()
+      .input('phone', sql.NVarChar, phone.trim())
+      .input('code',  sql.NVarChar, POSBACK_CODE)
+      .query(`
+        SELECT TOP 1 OTP, EXPIRES_AT
+        FROM dbo.tb_OTP_SESSIONS
+        WHERE PHONE = @phone AND COMPANY_CODE = @code
+      `);
+
+    if (!sess.recordset.length)
+      return res.status(400).json({ success: false, message: 'No OTP found. Request a new one.' });
 
     const { OTP, EXPIRES_AT } = sess.recordset[0];
-    if (new Date() > new Date(EXPIRES_AT)) return res.status(400).json({ success: false, message: 'OTP expired.' });
-    if (OTP.trim() !== otp.trim())    return res.status(400).json({ success: false, message: 'Incorrect OTP.' });
 
-    // Clean up
+    if (new Date() > new Date(EXPIRES_AT))
+      return res.status(400).json({ success: false, message: 'OTP expired.' });
+
+    if (OTP.trim() !== otp.trim())
+      return res.status(400).json({ success: false, message: 'Incorrect OTP.' });
+
+    // Clean up used OTP
     await loyPool.request()
-      .input('email', sql.NVarChar, phone.trim())
-      .query(`DELETE FROM dbo.tb_OTP_SESSIONS WHERE EMAIL = @email`);
+      .input('phone', sql.NVarChar, phone.trim())
+      .input('code',  sql.NVarChar, POSBACK_CODE)
+      .query(`DELETE FROM dbo.tb_OTP_SESSIONS WHERE PHONE = @phone AND COMPANY_CODE = @code`);
 
+    // Get customer
     const posPool = await getPosbackPool();
     const cust    = await posPool.request()
       .input('mob',  sql.NVarChar, phone.trim())
@@ -136,15 +192,24 @@ exports.verifyOtp = async (req, res) => {
         WHERE MOBILENO = @mob AND COMPANY_CODE = @code AND CUSTOMER_LOCK = 'F'
       `);
 
-    if (!cust.recordset.length) return res.status(404).json({ success: false, message: 'Customer not found.' });
+    if (!cust.recordset.length)
+      return res.status(404).json({ success: false, message: 'Customer not found.' });
 
-    const row    = cust.recordset[0];
-    const points = await getPointsSummary(posPool, row.SERIALNO, POSBACK_CODE);
+    const row      = cust.recordset[0];
+    const points   = await getPointsSummary(posPool, row.SERIALNO, POSBACK_CODE);
     const customer = shapeCustomer(row, points);
 
     const token = jwt.sign(
-      { serialNo: customer.serialNo, name: customer.name, phone: customer.phone, companyCode: POSBACK_CODE, companyName: customer.companyName, isPortalUser: true },
-      JWT_SECRET, { expiresIn: JWT_EXPIRES }
+      {
+        serialNo:    customer.serialNo,
+        name:        customer.name,
+        phone:       customer.phone,
+        companyCode: POSBACK_CODE,
+        companyName: customer.companyName,
+        isPortalUser: true,
+      },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES }
     );
 
     console.log(`✅ Login — ${customer.name} (${customer.phone}) @ ${customer.companyName} — ${nowStr()}`);
@@ -158,10 +223,11 @@ exports.verifyOtp = async (req, res) => {
 /* ── qrLogin ─────────────────────────────────────────────── */
 exports.qrLogin = async (req, res) => {
   try {
-    const { qrCode }                 = req.body;
+    const { qrCode }                     = req.body;
     const { POSBACK_CODE, COMPANY_NAME } = req.company;
 
-    if (!qrCode) return res.status(400).json({ success: false, message: 'QR code required.' });
+    if (!qrCode)
+      return res.status(400).json({ success: false, message: 'QR code required.' });
 
     const posPool = await getPosbackPool();
     const result  = await posPool.request()
@@ -176,15 +242,24 @@ exports.qrLogin = async (req, res) => {
           AND COMPANY_CODE = @code AND CUSTOMER_LOCK = 'F'
       `);
 
-    if (!result.recordset.length) return res.status(404).json({ success: false, message: 'QR code not recognized at ' + COMPANY_NAME + '.' });
+    if (!result.recordset.length)
+      return res.status(404).json({ success: false, message: 'QR code not recognized at ' + COMPANY_NAME + '.' });
 
-    const row    = result.recordset[0];
-    const points = await getPointsSummary(posPool, row.SERIALNO, POSBACK_CODE);
+    const row      = result.recordset[0];
+    const points   = await getPointsSummary(posPool, row.SERIALNO, POSBACK_CODE);
     const customer = shapeCustomer(row, points);
 
     const token = jwt.sign(
-      { serialNo: customer.serialNo, name: customer.name, phone: customer.phone, companyCode: POSBACK_CODE, companyName: customer.companyName, isPortalUser: true },
-      JWT_SECRET, { expiresIn: JWT_EXPIRES }
+      {
+        serialNo:    customer.serialNo,
+        name:        customer.name,
+        phone:       customer.phone,
+        companyCode: POSBACK_CODE,
+        companyName: customer.companyName,
+        isPortalUser: true,
+      },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES }
     );
 
     console.log(`✅ QR Login — ${customer.name} (${customer.phone}) @ ${customer.companyName} — ${nowStr()}`);
