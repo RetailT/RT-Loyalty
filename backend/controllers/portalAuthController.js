@@ -1,16 +1,15 @@
 const { getPosbackPool, getLoyaltyPool, sql } = require('../config/userdb');
 const jwt = require('jsonwebtoken');
+const { sendOtpSMS } = require('../utils/sms');
 
 const JWT_SECRET  = process.env.JWT_SECRET || 'rt_loyalty_secret';
 const JWT_EXPIRES = '8h';
 const OTP_TTL_MIN = parseInt(process.env.OTP_EXPIRES_MINUTES) || 10;
 const IS_DEV      = process.env.NODE_ENV !== 'production';
 
-// OTP rate limit: max 2 requests per 5 minutes per phone+company
 const OTP_RATE_LIMIT_COUNT = 2;
 const OTP_RATE_LIMIT_MIN   = 5;
 
-/* ── helpers ─────────────────────────────────────────────── */
 function nowStr() { return new Date().toLocaleTimeString('en-GB'); }
 
 async function getPointsSummary(posPool, serialNo, posbackCode) {
@@ -60,7 +59,7 @@ exports.sendOtp = async (req, res) => {
 
     const loyPool = await getLoyaltyPool();
 
-    // ✅ FIX 2: Rate limiting — max 2 OTPs per 5 min per phone+company
+    // Rate limiting
     const rateCheck = await loyPool.request()
       .input('phone', sql.NVarChar, phone.trim())
       .input('code',  sql.NVarChar, POSBACK_CODE)
@@ -81,7 +80,7 @@ exports.sendOtp = async (req, res) => {
       });
     }
 
-    // Check customer exists in this company
+    // Check customer exists
     const posPool = await getPosbackPool();
     const found   = await posPool.request()
       .input('mob',  sql.NVarChar, phone.trim())
@@ -101,14 +100,14 @@ exports.sendOtp = async (req, res) => {
 
     const otp     = String(Math.floor(100000 + Math.random() * 900000));
     const expires = new Date(Date.now() + OTP_TTL_MIN * 60000);
+    const custRow = found.recordset[0];
+    const shop    = custRow.COMPANY_NAME || COMPANY_NAME;
 
-    console.log('DEBUG sendOtp:', { phone: phone.trim(), POSBACK_CODE, otp });
-
-    // ✅ FIX 3: Store PHONE + COMPANY_CODE together (prevent cross-shop OTP reuse)
+    // Store OTP with PHONE + COMPANY_CODE
     await loyPool.request()
       .input('phone',   sql.NVarChar, phone.trim())
       .input('code',    sql.NVarChar, POSBACK_CODE)
-      .input('email',   sql.NVarChar, phone.trim()) // EMAIL = phone (backward compat)
+      .input('email',   sql.NVarChar, phone.trim())
       .input('otp',     sql.NVarChar, otp)
       .input('expires', sql.DateTime, expires)
       .query(`
@@ -122,16 +121,20 @@ exports.sendOtp = async (req, res) => {
           VALUES (@email, @phone, @code, @otp, @expires, GETDATE());
       `);
 
-    const custRow = found.recordset[0];
     const hasEmail = !!(custRow.EMAIL || '').trim();
 
+    // ✅ Always send SMS OTP
+    sendOtpSMS(phone.trim(), otp, shop).catch(err =>
+      console.error('[sendOtp] SMS error:', err.message)
+    );
+
+    // ✅ Also send email if available
     if (hasEmail) {
-      console.log(`📧 OTP for ${phone} @ ${custRow.COMPANY_NAME || COMPANY_NAME}: ${otp}`);
+      console.log(`📧 OTP email queued for ${phone} @ ${shop}`);
       // TODO: sendOtpEmail(custRow.EMAIL, otp, custRow.CUSTDISPLAY_NAME);
-    } else {
-      console.log(`📱 OTP for ${phone} @ ${custRow.COMPANY_NAME || COMPANY_NAME}: ${otp}`);
-      // TODO: sendOtpSMS(phone, otp, custRow.COMPANY_NAME || COMPANY_NAME);
     }
+
+    console.log(`📱 OTP for ${phone} @ ${shop}: ${otp}`);
 
     res.json({ success: true, hasEmail, ...(IS_DEV ? { dev_otp: otp } : {}) });
   } catch (err) {
@@ -151,7 +154,6 @@ exports.verifyOtp = async (req, res) => {
 
     const loyPool = await getLoyaltyPool();
 
-    // ✅ FIX 3: Verify OTP by phone + company (not phone alone)
     const sess = await loyPool.request()
       .input('phone', sql.NVarChar, phone.trim())
       .input('code',  sql.NVarChar, POSBACK_CODE)
@@ -271,7 +273,7 @@ exports.qrLogin = async (req, res) => {
 
 /* ── logoutPortal ────────────────────────────────────────── */
 exports.logoutPortal = (req, res) => {
-  const { name, phone, reason } = req.body;
+  const { name, phone, reason } = req.body || {};
   console.log(`🔴 Logout — ${name || '?'} (${phone || '?'}) — ${reason || 'manual'} — ${nowStr()}`);
   res.json({ success: true });
 };
