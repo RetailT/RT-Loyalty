@@ -11,5 +11,11 @@
       "src": "/(.*)",
       "dest": "api/index.js"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/debug/health",
+      "schedule": "*/5 * * * *"
+    }
   ]
 }
