@@ -1,0 +1,14 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Vercel Backend Deploy
+        run: curl -X POST "https://api.vercel.com/v1/integrations/deploy/prj_dcO5JNg3IsAE27HQrcG8PiR12jvF/PTrThElWwX"
