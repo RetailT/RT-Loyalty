@@ -37,7 +37,6 @@ export default function Navbar({ currentPage, onNavigate }) {
           <div>
             <div style={{ color:theme.text, fontFamily:"'Bebas Neue',sans-serif", fontSize:isMobile?16:18, letterSpacing:2, lineHeight:1 }}>RETAIL</div>
             <div style={{ color:'#FF6B00', fontSize:8, letterSpacing:3, textTransform:'uppercase', fontFamily:'monospace' }}>LOYALTY PORTAL</div>
-            {/* ← !isMobile condition remove කළා */}
           </div>
         </div>
 

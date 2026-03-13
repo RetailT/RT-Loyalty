@@ -55,13 +55,54 @@ exports.sendOtp = async (req, res) => {
     const { phone }                      = req.body;
     const { POSBACK_CODE, COMPANY_NAME } = req.company;
 
-    if (!phone) return res.status(400).json({ success: false, message: 'Phone required.' });
+    if (!phone) return res.status(400).json({ success: false, message: 'Input required.' });
 
+    const input = phone.trim();
+    const posPool = await getPosbackPool();
+
+    // ✅ Search by Mobile, NIC, Passport, Serial No 1/2/3
+    const found = await posPool.request()
+      .input('input', sql.NVarChar, input)
+      .input('code',  sql.Char,     POSBACK_CODE)
+      .query(`
+        SELECT TOP 1
+          SERIALNO, CUSTDISPLAY_NAME, CUSTFULL_NAME,
+          MOBILENO, EMAIL, COMPANY_NAME
+        FROM dbo.tb_LOYALTYCUSTOMER_MAIN
+        WHERE COMPANY_CODE = @code
+          AND CUSTOMER_LOCK = 'F'
+          AND (
+            MOBILENO  = @input OR
+            NIC       = @input OR
+            PASSPORT  = @input OR
+            SERIALNO  = @input OR
+            SERIALNO2 = @input OR
+            SERIALNO3 = @input
+          )
+      `);
+
+    if (!found.recordset.length) {
+      return res.status(404).json({
+        success: false,
+        message: 'No loyalty account found. Please try your Mobile No, NIC, Passport or Loyalty Card No.',
+      });
+    }
+
+    const custRow   = found.recordset[0];
+    const mobileNo  = custRow.MOBILENO;
+    const shop      = custRow.COMPANY_NAME || COMPANY_NAME;
+
+    if (!mobileNo) {
+      return res.status(400).json({
+        success: false,
+        message: 'No mobile number registered for this account. Please contact your shop.',
+      });
+    }
+
+    // Rate limiting — by actual mobile number
     const loyPool = await getLoyaltyPool();
-
-    // Rate limiting
     const rateCheck = await loyPool.request()
-      .input('phone', sql.NVarChar, phone.trim())
+      .input('phone', sql.NVarChar, mobileNo)
       .input('code',  sql.NVarChar, POSBACK_CODE)
       .input('mins',  sql.Int,      OTP_RATE_LIMIT_MIN)
       .input('max',   sql.Int,      OTP_RATE_LIMIT_COUNT)
@@ -80,34 +121,14 @@ exports.sendOtp = async (req, res) => {
       });
     }
 
-    // Check customer exists
-    const posPool = await getPosbackPool();
-    const found   = await posPool.request()
-      .input('mob',  sql.NVarChar, phone.trim())
-      .input('code', sql.Char,     POSBACK_CODE)
-      .query(`
-        SELECT TOP 1 SERIALNO, CUSTDISPLAY_NAME, MOBILENO, EMAIL, COMPANY_NAME
-        FROM dbo.tb_LOYALTYCUSTOMER_MAIN
-        WHERE MOBILENO = @mob AND COMPANY_CODE = @code AND CUSTOMER_LOCK = 'F'
-      `);
-
-    if (!found.recordset.length) {
-      return res.status(404).json({
-        success: false,
-        message: 'No loyalty account found for this number at ' + COMPANY_NAME + '.',
-      });
-    }
-
     const otp     = String(Math.floor(100000 + Math.random() * 900000));
     const expires = new Date(Date.now() + OTP_TTL_MIN * 60000);
-    const custRow = found.recordset[0];
-    const shop    = custRow.COMPANY_NAME || COMPANY_NAME;
 
-    // Store OTP with PHONE + COMPANY_CODE
+    // Store OTP with actual MOBILENO + COMPANY_CODE
     await loyPool.request()
-      .input('phone',   sql.NVarChar, phone.trim())
+      .input('phone',   sql.NVarChar, mobileNo)
       .input('code',    sql.NVarChar, POSBACK_CODE)
-      .input('email',   sql.NVarChar, phone.trim())
+      .input('email',   sql.NVarChar, mobileNo)
       .input('otp',     sql.NVarChar, otp)
       .input('expires', sql.DateTime, expires)
       .query(`
@@ -121,22 +142,28 @@ exports.sendOtp = async (req, res) => {
           VALUES (@email, @phone, @code, @otp, @expires, GETDATE());
       `);
 
-    const hasEmail = !!(custRow.EMAIL || '').trim();
-
-    // ✅ Always send SMS OTP
-    sendOtpSMS(phone.trim(), otp, shop).catch(err =>
+    // Send SMS to registered mobile
+    sendOtpSMS(mobileNo, otp, shop).catch(err =>
       console.error('[sendOtp] SMS error:', err.message)
     );
 
-    // ✅ Also send email if available
+    const hasEmail = !!(custRow.EMAIL || '').trim();
     if (hasEmail) {
-      console.log(`📧 OTP email queued for ${phone} @ ${shop}`);
+      console.log(`📧 OTP email queued for ${mobileNo} @ ${shop}`);
       // TODO: sendOtpEmail(custRow.EMAIL, otp, custRow.CUSTDISPLAY_NAME);
     }
 
-    console.log(`📱 OTP for ${phone} @ ${shop}: ${otp}`);
+    console.log(`📱 OTP for ${mobileNo} @ ${shop}: ${otp}`);
 
-    res.json({ success: true, hasEmail, ...(IS_DEV ? { dev_otp: otp } : {}) });
+    // Return masked mobile for frontend display
+    const maskedPhone = mobileNo.slice(0, 3) + '****' + mobileNo.slice(-3);
+
+    res.json({
+      success: true,
+      hasEmail,
+      maskedPhone,
+      ...(IS_DEV ? { dev_otp: otp } : {}),
+    });
   } catch (err) {
     console.error('[sendOtp]', err.message);
     res.status(500).json({ success: false, message: 'Server error.', error: err.message });
@@ -150,12 +177,38 @@ exports.verifyOtp = async (req, res) => {
     const { POSBACK_CODE, COMPANY_NAME } = req.company;
 
     if (!phone || !otp)
-      return res.status(400).json({ success: false, message: 'Phone and OTP required.' });
+      return res.status(400).json({ success: false, message: 'Input and OTP required.' });
 
-    const loyPool = await getLoyaltyPool();
+    const input   = phone.trim();
+    const posPool = await getPosbackPool();
+
+    // Find customer by any identifier to get actual mobile
+    const custSearch = await posPool.request()
+      .input('input', sql.NVarChar, input)
+      .input('code',  sql.Char,     POSBACK_CODE)
+      .query(`
+        SELECT TOP 1 MOBILENO
+        FROM dbo.tb_LOYALTYCUSTOMER_MAIN
+        WHERE COMPANY_CODE = @code
+          AND CUSTOMER_LOCK = 'F'
+          AND (
+            MOBILENO  = @input OR
+            NIC       = @input OR
+            PASSPORT  = @input OR
+            SERIALNO  = @input OR
+            SERIALNO2 = @input OR
+            SERIALNO3 = @input
+          )
+      `);
+
+    if (!custSearch.recordset.length)
+      return res.status(404).json({ success: false, message: 'Account not found.' });
+
+    const mobileNo = custSearch.recordset[0].MOBILENO;
+    const loyPool  = await getLoyaltyPool();
 
     const sess = await loyPool.request()
-      .input('phone', sql.NVarChar, phone.trim())
+      .input('phone', sql.NVarChar, mobileNo)
       .input('code',  sql.NVarChar, POSBACK_CODE)
       .query(`
         SELECT TOP 1 OTP, EXPIRES_AT
@@ -176,14 +229,13 @@ exports.verifyOtp = async (req, res) => {
 
     // Clean up used OTP
     await loyPool.request()
-      .input('phone', sql.NVarChar, phone.trim())
+      .input('phone', sql.NVarChar, mobileNo)
       .input('code',  sql.NVarChar, POSBACK_CODE)
       .query(`DELETE FROM dbo.tb_OTP_SESSIONS WHERE PHONE = @phone AND COMPANY_CODE = @code`);
 
-    // Get customer
-    const posPool = await getPosbackPool();
-    const cust    = await posPool.request()
-      .input('mob',  sql.NVarChar, phone.trim())
+    // Get full customer
+    const cust = await posPool.request()
+      .input('mob',  sql.NVarChar, mobileNo)
       .input('code', sql.Char,     POSBACK_CODE)
       .query(`
         SELECT TOP 1 SERIALNO, CUSTDISPLAY_NAME, CUSTFULL_NAME, MOBILENO,
@@ -202,11 +254,11 @@ exports.verifyOtp = async (req, res) => {
 
     const token = jwt.sign(
       {
-        serialNo:    customer.serialNo,
-        name:        customer.name,
-        phone:       customer.phone,
-        companyCode: POSBACK_CODE,
-        companyName: customer.companyName,
+        serialNo:     customer.serialNo,
+        name:         customer.name,
+        phone:        customer.phone,
+        companyCode:  POSBACK_CODE,
+        companyName:  customer.companyName,
         isPortalUser: true,
       },
       JWT_SECRET,
@@ -252,11 +304,11 @@ exports.qrLogin = async (req, res) => {
 
     const token = jwt.sign(
       {
-        serialNo:    customer.serialNo,
-        name:        customer.name,
-        phone:       customer.phone,
-        companyCode: POSBACK_CODE,
-        companyName: customer.companyName,
+        serialNo:     customer.serialNo,
+        name:         customer.name,
+        phone:        customer.phone,
+        companyCode:  POSBACK_CODE,
+        companyName:  customer.companyName,
         isPortalUser: true,
       },
       JWT_SECRET,

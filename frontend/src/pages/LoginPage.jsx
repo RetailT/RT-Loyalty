@@ -10,14 +10,15 @@ export default function LoginPage({ onNavigate }) {
   const { isMobile }     = useResponsive();
   const { cardProps }    = useCardHover({ borderRadius: 20, padding: isMobile ? '28px 20px' : '36px 32px' });
 
-  const [step, setStep]       = useState('phone');
-  const [phone, setPhone]     = useState('');
-  const [otp, setOtp]         = useState(['','','','','','']);
-  const [loading, setLoading] = useState(false);
-  const [timer, setTimer]     = useState(0);
-  const [error, setError]     = useState('');
-  const [devOtp, setDevOtp]   = useState('');
-  const [hasEmail, setHasEmail] = useState(true);
+  const [step, setStep]             = useState('phone');
+  const [input, setInput]           = useState('');
+  const [otp, setOtp]               = useState(['','','','','','']);
+  const [loading, setLoading]       = useState(false);
+  const [timer, setTimer]           = useState(0);
+  const [error, setError]           = useState('');
+  const [devOtp, setDevOtp]         = useState('');
+  const [hasEmail, setHasEmail]     = useState(false);
+  const [maskedPhone, setMaskedPhone] = useState('');
 
   useEffect(() => {
     if (timer > 0) {
@@ -26,20 +27,21 @@ export default function LoginPage({ onNavigate }) {
     }
   }, [timer]);
 
-  const isValidPhone = (v) => /^[0-9]{9,12}$/.test(v.replace(/[\s\-()/]/g, ''));
+  const isValidInput = (v) => v.trim().length >= 5;
 
   const handleSendOTP = async () => {
-    if (!isValidPhone(phone)) { setError('Please enter a valid mobile number'); return; }
+    if (!isValidInput(input)) { setError('Please enter a valid Mobile No, NIC, Passport or Loyalty Card No.'); return; }
     setError('');
     setLoading(true);
     try {
-      const res = await sendOTP(null, phone.trim());
-      if (res.dev_otp) setDevOtp(res.dev_otp);
+      const res = await sendOTP(null, input.trim());
+      if (res.dev_otp)    setDevOtp(res.dev_otp);
+      if (res.maskedPhone) setMaskedPhone(res.maskedPhone);
       setHasEmail(res.hasEmail);
       setStep('otp');
       setTimer(120);
     } catch (e) {
-      setError(e.message || 'No loyalty account found for this number.');
+      setError(e.message || 'No loyalty account found.');
     } finally {
       setLoading(false);
     }
@@ -65,7 +67,7 @@ export default function LoginPage({ onNavigate }) {
     setError('');
     setLoading(true);
     try {
-      const res = await verifyOTP(null, phone.trim(), code);
+      const res = await verifyOTP(null, input.trim(), code);
       login(res.customer, res.token);
       onNavigate('dashboard');
     } catch (e) {
@@ -83,7 +85,7 @@ export default function LoginPage({ onNavigate }) {
     transition: 'border-color 0.2s',
   };
 
-  const phoneReady = isValidPhone(phone);
+  const inputReady = isValidInput(input);
   const otpReady   = otp.join('').length === 6;
 
   return (
@@ -94,11 +96,7 @@ export default function LoginPage({ onNavigate }) {
     }}>
       <div style={{ width: '100%', maxWidth: 420 }}>
 
-        {/* ── Card with hover effect ── */}
-        <div {...cardProps} style={{
-          ...cardProps.style,
-          cursor: 'default', // login card click cursor default
-        }}>
+        <div {...cardProps} style={{ ...cardProps.style, cursor: 'default' }}>
 
           {/* Logo */}
           <div style={{ textAlign: 'center', marginBottom: 28 }}>
@@ -115,26 +113,26 @@ export default function LoginPage({ onNavigate }) {
             </h1>
             <p style={{ color: theme.textMuted, fontSize: 12, fontFamily: "'Space Mono',monospace" }}>
               {step === 'phone'
-                ? 'Enter your mobile number to continue'
-                : `OTP sent to ${phone}`}
+                ? 'Enter your details to continue'
+                : `OTP sent to ${maskedPhone || 'your mobile'}`}
             </p>
           </div>
 
-          {/* ── PHONE STEP ── */}
+          {/* ── INPUT STEP ── */}
           {step === 'phone' && (
             <>
               <div style={{ marginBottom: 16 }}>
                 <label style={{ display: 'block', color: theme.textMuted, fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', fontFamily: "'Space Mono',monospace", marginBottom: 8 }}>
-                  Mobile Number
+                  Mobile No / NIC / Passport / Loyalty No
                 </label>
                 <input
-                  type="tel"
-                  value={phone}
-                  onChange={e => { setPhone(e.target.value); setError(''); }}
+                  type="text"
+                  value={input}
+                  onChange={e => { setInput(e.target.value); setError(''); }}
                   onKeyDown={e => e.key === 'Enter' && handleSendOTP()}
-                  placeholder="07X XXX XXXX"
+                  placeholder="07XXXXXXXX / NIC / Passport / Loyalty No"
                   autoFocus
-                  style={{ ...inp, width: '100%', padding: '12px 14px', fontSize: 15, boxSizing: 'border-box' }}
+                  style={{ ...inp, width: '100%', padding: '12px 14px', fontSize: 14, boxSizing: 'border-box' }}
                   onFocus={e => e.target.style.borderColor = '#FF6B00'}
                   onBlur={e  => e.target.style.borderColor = theme.border}
                 />
@@ -148,27 +146,27 @@ export default function LoginPage({ onNavigate }) {
 
               <button
                 onClick={handleSendOTP}
-                disabled={!phoneReady || loading}
+                disabled={!inputReady || loading}
                 style={{
                   width: '100%', padding: '14px',
-                  background: phoneReady ? 'linear-gradient(135deg,#FF6B00,#FF8C00)' : theme.bgAccent,
+                  background: inputReady ? 'linear-gradient(135deg,#FF6B00,#FF8C00)' : theme.bgAccent,
                   border: 'none', borderRadius: 10,
-                  color: phoneReady ? '#fff' : theme.textFaint,
+                  color: inputReady ? '#fff' : theme.textFaint,
                   fontFamily: "'Space Mono',monospace", fontSize: 11,
                   letterSpacing: 2, textTransform: 'uppercase',
-                  cursor: phoneReady ? 'pointer' : 'not-allowed',
-                  boxShadow: phoneReady ? '0 8px 24px rgba(255,107,0,0.3)' : 'none',
+                  cursor: inputReady ? 'pointer' : 'not-allowed',
+                  boxShadow: inputReady ? '0 8px 24px rgba(255,107,0,0.3)' : 'none',
                   transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                 }}
               >
                 {loading ? <><Spin /> Sending OTP...</> : 'Send OTP →'}
               </button>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 16, padding: '10px 12px', background: 'rgba(255,107,0,0.06)', border: '1px solid rgba(255,107,0,0.15)', borderRadius: 8 }}>
-                <span>📱</span>
-                <span style={{ color: theme.textMuted, fontSize: 11, lineHeight: 1.5 }}>
-                  We'll send a 6-digit OTP code to verify your identity.
-                </span>
+              {/* Info box */}
+              <div style={{ marginTop: 16, padding: '10px 12px', background: 'rgba(255,107,0,0.06)', border: '1px solid rgba(255,107,0,0.15)', borderRadius: 8 }}>
+                <div style={{ color: theme.textMuted, fontSize: 9, fontFamily: "'Space Mono',monospace", lineHeight: 1.8 }}>
+                  📱 We'll send a 6-digit OTP code to verify your identity.<br/>
+                </div>
               </div>
             </>
           )}
@@ -186,9 +184,9 @@ export default function LoginPage({ onNavigate }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'rgba(255,107,0,0.06)', border: '1px solid rgba(255,107,0,0.15)', borderRadius: 10, marginBottom: 20 }}>
                 <span style={{ fontSize: 18 }}>📱</span>
                 <div>
-                  <div style={{ color: theme.text, fontSize: 12, fontWeight: 600 }}>{phone}</div>
+                  <div style={{ color: theme.text, fontSize: 12, fontWeight: 600 }}>{maskedPhone || input}</div>
                   <div style={{ color: theme.textMuted, fontSize: 10, fontFamily: "'Space Mono',monospace" }}>
-                    {hasEmail ? 'Check your email for the OTP' : 'OTP generated (no email on file)'}
+                    OTP sent to your registered mobile number
                   </div>
                 </div>
               </div>
@@ -254,10 +252,10 @@ export default function LoginPage({ onNavigate }) {
               </button>
 
               <button
-                onClick={() => { setStep('phone'); setOtp(['','','','','','']); setError(''); setDevOtp(''); }}
+                onClick={() => { setStep('phone'); setOtp(['','','','','','']); setError(''); setDevOtp(''); setMaskedPhone(''); }}
                 style={{ width: '100%', marginTop: 10, padding: '10px', background: 'none', border: 'none', color: theme.textMuted, fontSize: 12, cursor: 'pointer', fontFamily: "'Space Mono',monospace" }}
               >
-                ← Change number
+                ← Change details
               </button>
             </>
           )}
