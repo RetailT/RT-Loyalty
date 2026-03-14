@@ -37,7 +37,6 @@ function QRDisplay({ value, size = 160 }) {
   );
 }
 
-// Quick link card with hover
 function QuickLinkCard({ q, onNavigate }) {
   const { cardProps } = useCardHover({ borderRadius:14, padding:'16px 14px', textAlign:'left' });
   return (
@@ -83,6 +82,9 @@ export default function DashboardPage({ onNavigate }) {
     { label:'My Profile',          sub:'Edit your details',   icon:'◉', page:'profile'      },
   ];
 
+  // Stats columns count — 3 on desktop, 2 on mobile
+  const statsCols = isMobile ? 2 : 3;
+
   return (
     <div style={{ maxWidth:900, margin:'0 auto', padding: isMobile?'24px 16px 100px':'32px 32px 60px' }}>
 
@@ -94,8 +96,8 @@ export default function DashboardPage({ onNavigate }) {
         </h1>
       </div>
 
-      {/* Points Hero */}
-      <div style={{ display:'grid', gridTemplateColumns: isMobile?'1fr':'1fr auto', gap:16, marginBottom:20, alignItems:'stretch' }}>
+      {/* Points Hero — full width, same as stats below */}
+      <div style={{ marginBottom:12 }}>
         <div style={{ background:'linear-gradient(135deg,#FF6B00,#FF8C00)', borderRadius:20, padding: isMobile?20:28, position:'relative', overflow:'hidden', boxShadow:'0 16px 48px rgba(255,107,0,0.3)' }}>
           <div style={{ position:'absolute', top:-30, right:-30, width:140, height:140, background:'rgba(255,255,255,0.05)', borderRadius:'50%' }} />
           <div style={{ position:'absolute', bottom:-20, left:-20, width:100, height:100, background:'rgba(0,0,0,0.1)', borderRadius:'50%' }} />
@@ -110,17 +112,17 @@ export default function DashboardPage({ onNavigate }) {
                 🏪 {user.loyaltyType || 'Member'}
               </div>
               <div style={{ color:'rgba(255,255,255,0.5)', fontSize:10, marginTop:6, fontFamily:"'Space Mono',monospace" }}>{user.serialNo}</div>
-              <div style={{ color:'rgba(255,255,255,0.5)', fontSize:10, marginTop:2, fontFamily:"'Space Mono',monospace" }}>{user.companyName}</div>
+              <div style={{ color:'rgba(255,255,255,0.7)', fontSize:12, marginTop:2, fontFamily:"'Space Mono',monospace", fontWeight:600 }}>{user.companyName}</div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Stats */}
-      <div style={{ display:'grid', gridTemplateColumns:`repeat(${isMobile?2:3},1fr)`, gap:12, marginBottom:20 }}>
+      {/* Stats — same width as hero above */}
+      <div style={{ display:'grid', gridTemplateColumns:`repeat(${statsCols},1fr)`, gap:12, marginBottom:20 }}>
         <StatsCard title="This Month"   value={`+${thisMonthPts.toFixed(2)}`} subtitle="points earned" icon="📈" />
         <StatsCard title="Transactions" value={earnCount}                      subtitle="earn events"   icon="🧾" />
-        <StatsCard title="Shop"         value={user.companyName||'—'}          subtitle="your store"    icon="🏪" />
+        {!isMobile && <StatsCard title="Shop" value={user.companyName||'—'} subtitle="your store" icon="🏪" />}
       </div>
 
       {/* Quick Links */}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import ThemeToggle from './ThemeToggle';
@@ -13,11 +13,22 @@ const navItems = [
 ];
 
 export default function Navbar({ currentPage, onNavigate }) {
-  const { user, logout }         = useAuth();
-  const { theme }                = useTheme();
-  const { isMobile, isTablet }   = useResponsive();
-  const [menuOpen, setMenuOpen]  = useState(false);
+  const { user, logout }          = useAuth();
+  const { theme }                 = useTheme();
+  const { isMobile, isTablet }    = useResponsive();
+  const [menuOpen, setMenuOpen]   = useState(false);
   const [tabletNav, setTabletNav] = useState(false);
+  const menuRef                   = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleNav = (page) => { onNavigate(page); setMenuOpen(false); setTabletNav(false); };
   const handleLogout = () => { logout(); onNavigate('landing'); setMenuOpen(false); };
@@ -72,7 +83,7 @@ export default function Navbar({ currentPage, onNavigate }) {
                   <div style={{ color:'#FF6B00', fontSize:10, letterSpacing:1, textTransform:'uppercase' }}>{user.membershipTier} Member</div>
                 </div>
               )}
-              <div style={{ position:'relative' }}>
+              <div ref={menuRef} style={{ position:'relative' }}>
                 <div onClick={() => setMenuOpen(!menuOpen)} style={{ width:34, height:34, background:'linear-gradient(135deg,#FF6B00,#FF8C00)', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontWeight:900, fontSize:13, cursor:'pointer', boxShadow:'0 4px 12px rgba(255,107,0,0.35)' }}>
                   {user.name?.charAt(0) || 'U'}
                 </div>
