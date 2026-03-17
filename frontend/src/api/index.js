@@ -84,3 +84,9 @@ export const getMyRedemptions = async (token) => {
   const res = await fetch(`${API}/api/portal/redemptions`, { headers: baseHeaders(token) });
   return res.json();
 };
+
+// ── Promotions ────────────────────────────────────────────
+export const getPromotions = async (token) => {
+  const res = await fetch(`${API}/api/portal/promotions`, { headers: baseHeaders(token) });
+  return res.json();
+};

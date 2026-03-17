@@ -27,5 +27,6 @@ router.get ('/transactions', portalProtect, customer.getTransactions);
 router.get ('/rewards',      portalProtect, customer.getRewards);
 router.get ('/redemptions',  portalProtect, customer.getMyRedemptions);
 router.post('/redeem',       portalProtect, customer.redeemReward);
+router.get ('/promotions',   portalProtect, customer.getPromotions);
 
 module.exports = router;

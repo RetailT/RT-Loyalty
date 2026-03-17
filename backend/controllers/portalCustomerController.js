@@ -278,3 +278,42 @@ exports.redeemReward = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error.', error: err.message });
   }
 };
+
+/* ── getPromotions ───────────────────────────────────────── */
+exports.getPromotions = async (req, res) => {
+  try {
+    const { companyCode } = req.customer;
+    const posPool = await getPosbackPool();
+
+    const result = await posPool.request()
+      .input('code', sql.Char, companyCode)
+      .query(`
+        SELECT
+          p.IDX         AS idx,
+          p.PRODUCT_CODE AS productCode,
+          COALESCE(NULLIF(LTRIM(RTRIM(pr.PRODUCT_NAMELONG)),''), LTRIM(RTRIM(pr.PRODUCT_NAMESHORT))) AS productName,
+          p.UNIT_PRICE  AS unitPrice,
+          p.TYPE        AS type,
+          p.DPD_DATEFROM AS dateFrom,
+          p.DPD_DATETO  AS dateTo,
+          p.DPD_DISCPRC AS discountPrc,
+          p.PD1         AS discountAmt,
+          p.PROMOTIONMODE AS promotionMode
+        FROM dbo.tb_PROMOTION p
+        LEFT JOIN dbo.tb_PRODUCT pr ON pr.PRODUCT_CODE = p.PRODUCT_CODE
+        WHERE LTRIM(RTRIM(p.COMPANY_CODE)) = LTRIM(RTRIM(@code))
+          AND p.UNIT_PRICE > 0
+          AND (p.PD1 > 0 OR p.DPD_DISCPRC > 0)
+          AND (
+            p.DPD_DATETO = '1900-01-01 00:00:00.000'
+            OR p.DPD_DATETO >= CAST(GETDATE() AS DATE)
+          )
+        ORDER BY p.IDX DESC
+      `);
+
+    res.json({ success: true, data: result.recordset });
+  } catch (err) {
+    console.error('[getPromotions]', err.message);
+    res.status(500).json({ success: false, message: 'Server error.', error: err.message });
+  }
+};

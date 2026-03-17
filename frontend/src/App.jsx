@@ -11,17 +11,16 @@ import LandingPage      from './pages/LandingPage';
 import LoginPage        from './pages/LoginPage';
 import DashboardPage    from './pages/DashboardPage';
 import TransactionsPage from './pages/TransactionsPage';
-import RewardsPage      from './pages/RewardsPage';
+import PromotionsPage   from './pages/PromotionsPage';
 import ProfilePage      from './pages/ProfilePage';
 import TiersPage        from './pages/TiersPage';
 import QRPage           from './pages/QRPage';
 
-const PROTECTED = ['dashboard', 'transactions', 'rewards', 'profile', 'tiers', 'qr'];
+const PROTECTED = ['dashboard', 'transactions', 'promotions', 'profile', 'tiers', 'qr'];
 
-// Read current page from URL hash  e.g.  /#dashboard  →  'dashboard'
 function getPageFromHash() {
   const hash = window.location.hash.replace('#', '').trim();
-  const valid = ['landing', 'login', 'dashboard', 'transactions', 'rewards', 'profile', 'tiers', 'qr'];
+  const valid = ['landing', 'login', 'dashboard', 'transactions', 'promotions', 'profile', 'tiers', 'qr'];
   return valid.includes(hash) ? hash : 'landing';
 }
 
@@ -30,35 +29,26 @@ function AppContent() {
   const { isLoggedIn, loading } = useAuth();
   const { isMobile }            = useResponsive();
 
-  // Keep URL hash in sync when page state changes
   const navigate = (p) => {
     setPage(p);
     window.location.hash = p;
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Listen for browser back/forward buttons
   useEffect(() => {
     const onHashChange = () => setPage(getPageFromHash());
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
-  // Guard: redirect to login if trying to access protected page while logged out
   useEffect(() => {
-    if (!loading && PROTECTED.includes(page) && !isLoggedIn) {
-      navigate('login');
-    }
+    if (!loading && PROTECTED.includes(page) && !isLoggedIn) navigate('login');
   }, [page, isLoggedIn, loading]);
 
-  // Guard: redirect to dashboard if already logged in and on login/landing
   useEffect(() => {
-    if (!loading && isLoggedIn && (page === 'login' || page === 'landing')) {
-      navigate('dashboard');
-    }
+    if (!loading && isLoggedIn && (page === 'login' || page === 'landing')) navigate('dashboard');
   }, [isLoggedIn, loading]);
 
-  // Loading spinner while restoring session from localStorage
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -73,15 +63,15 @@ function AppContent() {
 
   const renderPage = () => {
     switch (page) {
-      case 'landing':      return <LandingPage       onNavigate={navigate} />;
-      case 'login':        return <LoginPage         onNavigate={navigate} />;
-      case 'dashboard':    return <DashboardPage     onNavigate={navigate} />;
-      case 'transactions': return <TransactionsPage  onNavigate={navigate} />;
-      case 'rewards':      return <RewardsPage       onNavigate={navigate} />;
-      case 'profile':      return <ProfilePage       onNavigate={navigate} />;
-      case 'tiers':        return <TiersPage         onNavigate={navigate} />;
-      case 'qr':           return <QRPage            onNavigate={navigate} />;
-      default:             return <LandingPage       onNavigate={navigate} />;
+      case 'landing':      return <LandingPage      onNavigate={navigate} />;
+      case 'login':        return <LoginPage        onNavigate={navigate} />;
+      case 'dashboard':    return <DashboardPage    onNavigate={navigate} />;
+      case 'transactions': return <TransactionsPage onNavigate={navigate} />;
+      case 'promotions':   return <PromotionsPage   onNavigate={navigate} />;
+      case 'profile':      return <ProfilePage      onNavigate={navigate} />;
+      case 'tiers':        return <TiersPage        onNavigate={navigate} />;
+      case 'qr':           return <QRPage           onNavigate={navigate} />;
+      default:             return <LandingPage      onNavigate={navigate} />;
     }
   };
 

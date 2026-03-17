@@ -2,11 +2,11 @@ import React from 'react';
 import { useTheme } from '../context/ThemeContext';
 
 const tabs = [
-  { id:'dashboard',    icon:'⬡', label:'Home'    },
-  { id:'transactions', icon:'◈', label:'History'  },
-  { id:'rewards',      icon:'⊞', label:'Rewards'  },
-  { id:'tiers',        icon:'◫', label:'Tiers'    },
-  { id:'profile',      icon:'◉', label:'Profile'  },
+  { id:'dashboard',    icon:'⬡', label:'Home'       },
+  { id:'transactions', icon:'◈', label:'History'    },
+  { id:'promotions',   icon:'⊞', label:'Offers'     },
+  { id:'qr',           icon:'▦', label:'My QR'      },
+  { id:'profile',      icon:'◉', label:'Profile'    },
 ];
 
 export default function BottomNav({ currentPage, onNavigate }) {

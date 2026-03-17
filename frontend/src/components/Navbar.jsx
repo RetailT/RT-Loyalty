@@ -7,7 +7,7 @@ import useResponsive from '../hooks/useResponsive';
 const navItems = [
   { id:'dashboard',    label:'Dashboard', icon:'⬡' },
   { id:'transactions', label:'History',   icon:'◈' },
-  { id:'rewards',      label:'Rewards',   icon:'⊞' },
+  { id:'promotions',   label:'Promotions', icon:'⊞' },
   { id:'tiers',        label:'Tiers',     icon:'◫' },
   { id:'qr',           label:'My QR',     icon:'▦' },
   { id:'profile',      label:'Profile',   icon:'◉' },
