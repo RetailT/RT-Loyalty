@@ -4,7 +4,8 @@ import { useTheme } from '../context/ThemeContext';
 const tabs = [
   { id:'dashboard',    icon:'⬡', label:'Home'       },
   { id:'transactions', icon:'◈', label:'History'    },
-  { id:'promotions',   icon:'⊞', label:'Offers'     },
+  { id:'promotions',   icon:'⊞', label:'Promotions' },
+  { id:'tiers',        icon:'◫', label:'Tiers'      },
   { id:'qr',           icon:'▦', label:'My QR'      },
   { id:'profile',      icon:'◉', label:'Profile'    },
 ];
