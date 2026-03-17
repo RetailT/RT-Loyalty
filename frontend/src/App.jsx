@@ -14,13 +14,14 @@ import TransactionsPage from './pages/TransactionsPage';
 import RewardsPage      from './pages/RewardsPage';
 import ProfilePage      from './pages/ProfilePage';
 import TiersPage        from './pages/TiersPage';
+import QRPage           from './pages/QRPage';
 
-const PROTECTED = ['dashboard', 'transactions', 'rewards', 'profile', 'tiers'];
+const PROTECTED = ['dashboard', 'transactions', 'rewards', 'profile', 'tiers', 'qr'];
 
 // Read current page from URL hash  e.g.  /#dashboard  →  'dashboard'
 function getPageFromHash() {
   const hash = window.location.hash.replace('#', '').trim();
-  const valid = ['landing', 'login', 'dashboard', 'transactions', 'rewards', 'profile', 'tiers'];
+  const valid = ['landing', 'login', 'dashboard', 'transactions', 'rewards', 'profile', 'tiers', 'qr'];
   return valid.includes(hash) ? hash : 'landing';
 }
 
@@ -79,6 +80,7 @@ function AppContent() {
       case 'rewards':      return <RewardsPage       onNavigate={navigate} />;
       case 'profile':      return <ProfilePage       onNavigate={navigate} />;
       case 'tiers':        return <TiersPage         onNavigate={navigate} />;
+      case 'qr':           return <QRPage            onNavigate={navigate} />;
       default:             return <LandingPage       onNavigate={navigate} />;
     }
   };

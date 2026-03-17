@@ -6,11 +6,15 @@ async function getPointsSummary(posPool, serialNo, posbackCode) {
     .input('code', sql.Char,     posbackCode)
     .query(`
       SELECT
-        SUM(CASE WHEN ID='EN' THEN RATE ELSE 0     END) AS totalPoints,
-        SUM(CASE WHEN ID='RD' THEN RATE ELSE 0     END) AS redeemedPoints,
-        SUM(CASE WHEN ID='EN' THEN RATE ELSE -RATE END) AS availablePoints
+        SUM(CASE WHEN ID='EN' THEN RATE ELSE 0 END) AS totalPoints,
+        SUM(CASE WHEN ID='RD' THEN RATE ELSE 0 END) AS redeemedPoints,
+        SUM(CASE WHEN ID='EN' THEN RATE
+             WHEN ID='RD' THEN -RATE
+             WHEN ID='RM' THEN RATE
+             ELSE 0 END)                             AS availablePoints
       FROM dbo.tb_LOYALTY_TRANSACTION
-      WHERE SERIALNO = @sno AND COMPANY_CODE = @code AND SMS = 'T'
+      WHERE SERIALNO = @sno
+        AND COMPANY_CODE = @code
     `);
   const row = r.recordset[0] || {};
   return {
@@ -203,7 +207,6 @@ exports.redeemReward = async (req, res) => {
     const loyPool = await getLoyaltyPool();
     const posPool = await getPosbackPool();
 
-    // ✅ FIX 4: Reward must belong to this company
     const rwRes = await loyPool.request()
       .input('rid',  sql.Int,      reward_id)
       .input('code', sql.NVarChar, companyCode)
@@ -218,11 +221,9 @@ exports.redeemReward = async (req, res) => {
 
     const reward = rwRes.recordset[0];
 
-    // Check stock
     if (reward.STOCK !== null && reward.STOCK <= 0)
       return res.status(400).json({ success: false, message: 'Reward out of stock.' });
 
-    // Check points
     const points = await getPointsSummary(posPool, serialNo, companyCode);
     if (points.availablePoints < reward.POINTS_COST) {
       return res.status(400).json({
@@ -231,7 +232,6 @@ exports.redeemReward = async (req, res) => {
       });
     }
 
-    // Get customer IDX from POSBACK
     const custRes = await posPool.request()
       .input('sno',  sql.NVarChar, serialNo)
       .input('code', sql.Char,     companyCode)
@@ -242,7 +242,6 @@ exports.redeemReward = async (req, res) => {
 
     const custIdx = custRes.recordset[0].IDX;
 
-    // Insert redemption record
     await loyPool.request()
       .input('custId', sql.Int,   custIdx)
       .input('rid',    sql.Int,   reward.IDX)
@@ -252,14 +251,12 @@ exports.redeemReward = async (req, res) => {
         VALUES (@custId, @rid, @pts, 'PENDING', GETDATE())
       `);
 
-    // Decrement stock if tracked
     if (reward.STOCK !== null) {
       await loyPool.request()
         .input('rid', sql.Int, reward.IDX)
         .query(`UPDATE dbo.tb_REWARDS SET STOCK = STOCK - 1 WHERE IDX = @rid`);
     }
 
-    // Write RD transaction to POSBACK
     await posPool.request()
       .input('sno',  sql.NVarChar, serialNo)
       .input('code', sql.Char,     companyCode)

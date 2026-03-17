@@ -18,11 +18,15 @@ async function getPointsSummary(posPool, serialNo, posbackCode) {
     .input('code', sql.Char,     posbackCode)
     .query(`
       SELECT
-        SUM(CASE WHEN ID='EN' THEN RATE ELSE 0     END) AS totalPoints,
-        SUM(CASE WHEN ID='RD' THEN RATE ELSE 0     END) AS redeemedPoints,
-        SUM(CASE WHEN ID='EN' THEN RATE ELSE -RATE END) AS availablePoints
+        SUM(CASE WHEN ID='EN' THEN RATE ELSE 0 END) AS totalPoints,
+        SUM(CASE WHEN ID='RD' THEN RATE ELSE 0 END) AS redeemedPoints,
+        SUM(CASE WHEN ID='EN' THEN RATE
+             WHEN ID='RD' THEN -RATE
+             WHEN ID='RM' THEN RATE
+             ELSE 0 END)                             AS availablePoints
       FROM dbo.tb_LOYALTY_TRANSACTION
-      WHERE SERIALNO = @sno AND COMPANY_CODE = @code AND SMS = 'T'
+      WHERE SERIALNO = @sno
+        AND COMPANY_CODE = @code
     `);
   const row = r.recordset[0] || {};
   return {
@@ -60,7 +64,6 @@ exports.sendOtp = async (req, res) => {
     const input = phone.trim();
     const posPool = await getPosbackPool();
 
-    // ✅ Search by Mobile, NIC, Passport, Serial No 1/2/3
     const found = await posPool.request()
       .input('input', sql.NVarChar, input)
       .input('code',  sql.Char,     POSBACK_CODE)
@@ -99,7 +102,6 @@ exports.sendOtp = async (req, res) => {
       });
     }
 
-    // Rate limiting — by actual mobile number
     const loyPool = await getLoyaltyPool();
     const rateCheck = await loyPool.request()
       .input('phone', sql.NVarChar, mobileNo)
@@ -124,7 +126,6 @@ exports.sendOtp = async (req, res) => {
     const otp     = String(Math.floor(100000 + Math.random() * 900000));
     const expires = new Date(Date.now() + OTP_TTL_MIN * 60000);
 
-    // Store OTP with actual MOBILENO + COMPANY_CODE
     await loyPool.request()
       .input('phone',   sql.NVarChar, mobileNo)
       .input('code',    sql.NVarChar, POSBACK_CODE)
@@ -142,7 +143,6 @@ exports.sendOtp = async (req, res) => {
           VALUES (@email, @phone, @code, @otp, @expires, GETDATE());
       `);
 
-    // Send SMS to registered mobile
     sendOtpSMS(mobileNo, otp, shop).catch(err =>
       console.error('[sendOtp] SMS error:', err.message)
     );
@@ -150,12 +150,10 @@ exports.sendOtp = async (req, res) => {
     const hasEmail = !!(custRow.EMAIL || '').trim();
     if (hasEmail) {
       console.log(`📧 OTP email queued for ${mobileNo} @ ${shop}`);
-      // TODO: sendOtpEmail(custRow.EMAIL, otp, custRow.CUSTDISPLAY_NAME);
     }
 
     console.log(`📱 OTP for ${mobileNo} @ ${shop}: ${otp}`);
 
-    // Return masked mobile for frontend display
     const maskedPhone = mobileNo.slice(0, 3) + '****' + mobileNo.slice(-3);
 
     res.json({
@@ -182,7 +180,6 @@ exports.verifyOtp = async (req, res) => {
     const input   = phone.trim();
     const posPool = await getPosbackPool();
 
-    // Find customer by any identifier to get actual mobile
     const custSearch = await posPool.request()
       .input('input', sql.NVarChar, input)
       .input('code',  sql.Char,     POSBACK_CODE)
@@ -227,13 +224,11 @@ exports.verifyOtp = async (req, res) => {
     if (OTP.trim() !== otp.trim())
       return res.status(400).json({ success: false, message: 'Incorrect OTP.' });
 
-    // Clean up used OTP
     await loyPool.request()
       .input('phone', sql.NVarChar, mobileNo)
       .input('code',  sql.NVarChar, POSBACK_CODE)
       .query(`DELETE FROM dbo.tb_OTP_SESSIONS WHERE PHONE = @phone AND COMPANY_CODE = @code`);
 
-    // Get full customer
     const cust = await posPool.request()
       .input('mob',  sql.NVarChar, mobileNo)
       .input('code', sql.Char,     POSBACK_CODE)
