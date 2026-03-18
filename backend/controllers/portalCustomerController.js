@@ -6,21 +6,18 @@ async function getPointsSummary(posPool, serialNo, posbackCode) {
     .input('code', sql.Char,     posbackCode)
     .query(`
       SELECT
-        SUM(CASE WHEN ID='EN' THEN RATE ELSE 0 END) AS totalPoints,
-        SUM(CASE WHEN ID='RM' THEN RATE ELSE 0 END) AS redeemedPoints,
-        SUM(CASE 
-              WHEN ID='EN' THEN RATE
-              WHEN ID='RM' THEN -RATE
-              ELSE 0 
+        SUM(CASE WHEN LTRIM(RTRIM(ID))='EN' THEN RATE ELSE 0 END) AS totalPoints,
+        SUM(CASE WHEN LTRIM(RTRIM(ID))='RM' THEN ABS(RATE) ELSE 0 END) AS redeemedPoints,
+        SUM(CASE
+              WHEN LTRIM(RTRIM(ID))='EN' THEN RATE
+              WHEN LTRIM(RTRIM(ID))='RM' THEN -ABS(RATE)
+              ELSE 0
             END) AS availablePoints
       FROM dbo.tb_LOYALTY_TRANSACTION
       WHERE SERIALNO = @sno
         AND COMPANY_CODE = @code
-        AND ID IN ('EN', 'RM')
     `);
-
   const row = r.recordset[0] || {};
-
   return {
     totalPoints:     parseFloat(row.totalPoints     || 0),
     redeemedPoints:  parseFloat(row.redeemedPoints  || 0),
@@ -113,8 +110,10 @@ exports.getTransactions = async (req, res) => {
     const offset = (page - 1) * limit;
 
     let typeFilter = '';
-    if (type === 'earn')   typeFilter = "AND ID = 'EN'";
-    if (type === 'redeem') typeFilter = "AND ID = 'RM'";
+    if (type === 'earn')     typeFilter = "AND LTRIM(RTRIM(ID)) = 'EN'";
+    if (type === 'redeem')   typeFilter = "AND LTRIM(RTRIM(ID)) = 'RM'";
+    if (type === 'discount') typeFilter = "AND LTRIM(RTRIM(ID)) = 'PD'";
+    if (type === 'birthday') typeFilter = "AND LTRIM(RTRIM(ID)) = 'SDB'";
 
     const posPool = await getPosbackPool();
     const result  = await posPool.request()
@@ -261,6 +260,7 @@ exports.redeemReward = async (req, res) => {
         .query(`UPDATE dbo.tb_REWARDS SET STOCK = STOCK - 1 WHERE IDX = @rid`);
     }
 
+    // Insert RM transaction (positive value — getPointsSummary uses -ABS(RATE))
     await posPool.request()
       .input('sno',  sql.NVarChar, serialNo)
       .input('code', sql.Char,     companyCode)
@@ -293,46 +293,31 @@ exports.getPromotions = async (req, res) => {
       .input('code', sql.Char, companyCode)
       .query(`
         SELECT
-          p.IDX AS idx,
+          p.IDX          AS idx,
           p.PRODUCT_CODE AS productCode,
-          COALESCE(
-            NULLIF(LTRIM(RTRIM(pr.PRODUCT_NAMELONG)), ''),
-            LTRIM(RTRIM(pr.PRODUCT_NAMESHORT))
-          ) AS productName,
-          p.UNIT_PRICE AS unitPrice,
-          p.TYPE AS type,
+          COALESCE(NULLIF(LTRIM(RTRIM(pr.PRODUCT_NAMELONG)),''), LTRIM(RTRIM(pr.PRODUCT_NAMESHORT))) AS productName,
+          p.UNIT_PRICE   AS unitPrice,
+          p.TYPE         AS type,
           p.DPD_DATEFROM AS dateFrom,
-          p.DPD_DATETO AS dateTo,
-          p.DPD_DISCPRC AS discountPrc,
-          p.PD1 AS discountAmt,
+          p.DPD_DATETO   AS dateTo,
+          p.DPD_DISCPRC  AS discountPrc,
+          p.PD1          AS discountAmt,
           p.PROMOTIONMODE AS promotionMode
         FROM dbo.tb_PROMOTION p
-        LEFT JOIN dbo.tb_PRODUCT pr 
-          ON pr.PRODUCT_CODE = p.PRODUCT_CODE
+        LEFT JOIN dbo.tb_PRODUCT pr ON pr.PRODUCT_CODE = p.PRODUCT_CODE
         WHERE LTRIM(RTRIM(p.COMPANY_CODE)) = LTRIM(RTRIM(@code))
           AND p.UNIT_PRICE > 0
           AND (p.PD1 > 0 OR p.DPD_DISCPRC > 0)
-
-          -- ✅ Start date check (NEW)
-          AND p.DPD_DATEFROM <= CAST(GETDATE() AS DATE)
-
-          -- ✅ Expiry check
           AND (
             p.DPD_DATETO = '1900-01-01 00:00:00.000'
             OR p.DPD_DATETO >= CAST(GETDATE() AS DATE)
           )
-
         ORDER BY p.IDX DESC
       `);
 
     res.json({ success: true, data: result.recordset });
-
   } catch (err) {
     console.error('[getPromotions]', err.message);
-    res.status(500).json({
-      success: false,
-      message: 'Server error.',
-      error: err.message
-    });
+    res.status(500).json({ success: false, message: 'Server error.', error: err.message });
   }
 };

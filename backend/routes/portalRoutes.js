@@ -9,7 +9,7 @@ const { companyInfoHandler }     = require('../controllers/companyInfoRoute');
 
 // ── Company info (no middleware — public endpoint) ─────────
 // GET /api/portal/company?shop=keells-nugegoda
-router.get('/company', companyInfoHandler);
+router.get('/company', companyMiddleware, companyInfoHandler);
 
 // companyMiddleware ← routes
 router.use(companyMiddleware);
