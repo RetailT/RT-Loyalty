@@ -24,7 +24,7 @@ router.post('/auth/logout',     auth.logoutPortal);
 router.get ('/me',           portalProtect, customer.getMe);
 router.put ('/me',           portalProtect, customer.updateMe);
 router.get ('/transactions', portalProtect, customer.getTransactions);
-router.get ('/rewards',      portalProtect, customer.getRewards);
+router.get ('/company-info', portalProtect, companyInfoHandler);
 router.get ('/redemptions',  portalProtect, customer.getMyRedemptions);
 router.post('/redeem',       portalProtect, customer.redeemReward);
 router.get ('/promotions',   portalProtect, customer.getPromotions);
