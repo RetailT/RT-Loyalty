@@ -1,6 +1,16 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTheme, useCardHover } from '../context/ThemeContext';
 import useResponsive from '../hooks/useResponsive';
+
+function getSlug() {
+  const host  = window.location.hostname;
+  const parts = host.split('.');
+  // localhost or vercel preview — use ?shop param or default to first DB company
+  if (host === 'localhost' || host === '127.0.0.1' || host.includes('vercel.app')) {
+    return new URLSearchParams(window.location.search).get('shop') || '';
+  }
+  return parts[0];
+}
 
 function BenefitCard({ b }) {
   const { cardProps } = useCardHover({ borderRadius:16, padding:20 });
@@ -13,32 +23,28 @@ function BenefitCard({ b }) {
   );
 }
 
-function TierCard({ t }) {
-  const { cardProps } = useCardHover({ borderRadius:16, padding:'24px 20px', textAlign:'center' });
-  return (
-    <div {...cardProps}>
-      <div style={{ width:52, height:52, margin:'0 auto 14px', background:t.color, borderRadius:14, display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, boxShadow:'0 6px 20px rgba(0,0,0,0.2)' }}>{t.icon}</div>
-      <div style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:15, letterSpacing:1, marginTop:8 }}>{t.name}</div>
-    </div>
-  );
-}
-
 export default function LandingPage({ onNavigate }) {
   const { theme, mode } = useTheme();
   const { isMobile }    = useResponsive();
+  const [company, setCompany] = useState(null);
+
+  useEffect(() => {
+    const API  = process.env.REACT_APP_API_URL || 'http://localhost:10000';
+    const slug = getSlug();
+    const headers = { 'Content-Type': 'application/json' };
+    if (slug) headers['X-Shop-Slug'] = slug;
+
+    fetch(`${API}/api/portal/company`, { headers })
+      .then(r => r.json())
+      .then(d => { if (d.success) setCompany(d.company); })
+      .catch(() => {});
+  }, []);
 
   const benefits = [
     { icon:'🏪', title:'Earn at 500+ Stores', desc:'All participating Retail POS outlets across Sri Lanka' },
     { icon:'💎', title:'Tier Rewards',         desc:'Point Card → Product Discount Card → Total Discount Card → Points & Product Discount exclusive perks' },
     { icon:'🎁', title:'Redeem Anytime',       desc:'Vouchers, discounts, free items and more' },
     { icon:'📱', title:'Mobile First',         desc:'Login with just your mobile number — no password needed' },
-  ];
-
-  const loyaltyTypes = [
-    { name:'Point Card',                 icon:'💳', color:'linear-gradient(135deg,#92400e,#b45309)' },
-    { name:'Product Discount Card',      icon:'💰', color:'linear-gradient(135deg,#475569,#64748b)' },
-    { name:'Total Discount Card',        icon:'🏷️', color:'linear-gradient(135deg,#b45309,#d97706)' },
-    { name:'Points & Product Discount',  icon:'⭐', color:'linear-gradient(135deg,#4338ca,#6366f1)' },
   ];
 
   return (
@@ -51,19 +57,12 @@ export default function LandingPage({ onNavigate }) {
             ◈ Sri Lanka's Retail Loyalty Network
           </div>
           <h1 style={{
-            color:theme.text,
-            fontFamily:"'Bebas Neue',sans-serif",
-            fontSize: isMobile?56:80,
-            letterSpacing:3,
-            lineHeight:0.95,
-            marginBottom:20,
-            background: mode==='dark'
-              ? 'linear-gradient(135deg,rgba(255,107,0,0.18),rgba(255,140,0,0.10))'
-              : 'linear-gradient(135deg,rgba(255,107,0,0.12),rgba(255,140,0,0.06))',
-            border: `1px solid rgba(255,107,0,0.35)`,
-            borderRadius: 20,
+            color:theme.text, fontFamily:"'Bebas Neue',sans-serif",
+            fontSize: isMobile?56:80, letterSpacing:3, lineHeight:0.95, marginBottom:20,
+            background: mode==='dark' ? 'linear-gradient(135deg,rgba(255,107,0,0.18),rgba(255,140,0,0.10))' : 'linear-gradient(135deg,rgba(255,107,0,0.12),rgba(255,140,0,0.06))',
+            border:`1px solid rgba(255,107,0,0.35)`, borderRadius:20,
             padding: isMobile?'28px 20px':'36px 40px',
-            boxShadow: '0 8px 32px rgba(255,107,0,0.15)',
+            boxShadow:'0 8px 32px rgba(255,107,0,0.15)',
           }}>
             SHOP MORE.<br/><span style={{ color:'#FF6B00' }}>EARN MORE.</span><br/>REWARD YOURSELF.
           </h1>
@@ -76,7 +75,7 @@ export default function LandingPage({ onNavigate }) {
               onMouseLeave={e => e.currentTarget.style.transform='translateY(0)'}>
               Login to Account →
             </button>
-            <button onClick={() => onNavigate('login')} style={{ padding:'14px 32px', borderRadius:10, background:'transparent', border:`1px solid ${theme.border}`, color:theme.textSub, fontFamily:"'Space Mono',monospace", fontSize:11, letterSpacing:2, textTransform:'uppercase', cursor:'pointer', transition:'all 0.2s' }}
+            <button onClick={() => onNavigate('qr')} style={{ padding:'14px 32px', borderRadius:10, background:'transparent', border:`1px solid ${theme.border}`, color:theme.textSub, fontFamily:"'Space Mono',monospace", fontSize:11, letterSpacing:2, textTransform:'uppercase', cursor:'pointer', transition:'all 0.2s' }}
               onMouseEnter={e => { e.currentTarget.style.borderColor='#FF6B00'; e.currentTarget.style.color='#FF6B00'; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor=theme.border; e.currentTarget.style.color=theme.textSub; }}>
               Check My Points 📱
@@ -92,6 +91,50 @@ export default function LandingPage({ onNavigate }) {
           </div>
         </div>
       </section>
+
+      {/* Company Info */}
+      {company && (
+        <section style={{ background: mode==='dark'?'#111':'#fff8f0', borderTop:`1px solid rgba(255,107,0,0.15)`, borderBottom:`1px solid rgba(255,107,0,0.15)` }}>
+          <div style={{ maxWidth:900, margin:'0 auto', padding: isMobile?'20px 16px':'24px 32px' }}>
+            <div style={{ display:'flex', flexWrap:'wrap', alignItems:'center', justifyContent: isMobile?'flex-start':'space-between', gap:20 }}>
+              {/* Company name */}
+              <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+                <div style={{ width:44, height:44, background:'linear-gradient(135deg,#FF6B00,#FF8C00)', borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, flexShrink:0 }}>🏪</div>
+                <div>
+                  <div style={{ color:theme.textMuted, fontSize:10, fontFamily:"'Space Mono',monospace", letterSpacing:2, textTransform:'uppercase', marginBottom:2 }}>Your Store</div>
+                  <div style={{ color:theme.text, fontWeight:700, fontSize: isMobile?14:16 }}>{company.name}</div>
+                </div>
+              </div>
+
+              {!isMobile && <div style={{ width:1, height:36, background:theme.border }} />}
+
+              {/* Address */}
+              {company.address && (
+                <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                  <div style={{ width:36, height:36, background:'rgba(255,107,0,0.08)', border:'1px solid rgba(255,107,0,0.2)', borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, flexShrink:0 }}>📍</div>
+                  <div>
+                    <div style={{ color:theme.textMuted, fontSize:10, fontFamily:"'Space Mono',monospace", letterSpacing:1, textTransform:'uppercase', marginBottom:2 }}>Address</div>
+                    <div style={{ color:theme.textSub, fontSize:13 }}>{company.address}</div>
+                  </div>
+                </div>
+              )}
+
+              {!isMobile && company.phone && <div style={{ width:1, height:36, background:theme.border }} />}
+
+              {/* Phone */}
+              {company.phone && (
+                <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                  <div style={{ width:36, height:36, background:'rgba(255,107,0,0.08)', border:'1px solid rgba(255,107,0,0.2)', borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, flexShrink:0 }}>📞</div>
+                  <div>
+                    <div style={{ color:theme.textMuted, fontSize:10, fontFamily:"'Space Mono',monospace", letterSpacing:1, textTransform:'uppercase', marginBottom:2 }}>Hotline</div>
+                    <div style={{ color:theme.textSub, fontSize:13 }}>{company.phone}</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Benefits */}
       <section style={{ maxWidth:1100, margin:'0 auto', padding: isMobile?'48px 16px':'72px 32px' }}>

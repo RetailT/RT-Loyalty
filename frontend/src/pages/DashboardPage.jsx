@@ -5,9 +5,9 @@ import useResponsive from '../hooks/useResponsive';
 import StatsCard from '../components/StatsCard';
 import { getMyTransactions } from '../api';
 
-const txColor   = (type, theme) => type==='en'?theme.successText:type==='rd'?theme.redText:'#FF6B00';
-const txBg      = (type, theme) => type==='en'?theme.successBg:type==='rd'?theme.errorBg:'rgba(255,107,0,0.08)';
-const txBorderC = (type, theme) => type==='en'?theme.successBorder:type==='rd'?theme.errorBorder:'rgba(255,107,0,0.25)';
+const txColor   = (type, theme) => type==='en'?theme.successText:type==='rm'?theme.redText:'#FF6B00';
+const txBg      = (type, theme) => type==='en'?theme.successBg:type==='rm'?theme.errorBg:'rgba(255,107,0,0.08)';
+const txBorderC = (type, theme) => type==='en'?theme.successBorder:type==='rm'?theme.errorBorder:'rgba(255,107,0,0.25)';
 
 function QRDisplay({ value, size = 160 }) {
   const canvasRef = React.useRef(null);
@@ -71,18 +71,17 @@ export default function DashboardPage({ onNavigate }) {
   const now = new Date();
   const monthStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   const thisMonthPts = txs
-    .filter(t => (t.ID||'').toUpperCase()==='EN' && (t.INVOICE_DATE||'').startsWith(monthStr))
+    .filter(t => (t.ID||'').trim().toUpperCase()==='EN' && (t.INVOICE_DATE||'').startsWith(monthStr))
     .reduce((s,t) => s+parseFloat(t.RATE||0), 0);
-  const earnCount = txs.filter(t => (t.ID||'').toUpperCase()==='EN').length;
+  const earnCount = txs.filter(t => (t.ID||'').trim().toUpperCase()==='EN').length;
 
   const quickLinks = [
     { label:'Transaction History', sub:'All point activities', icon:'◈', page:'transactions' },
-    { label:'My QR Code',     sub:'Scan to earn points',     icon:'▦', page:'qr'      },
-    { label:'Promotions',        sub:'View promotions', icon:'⊞', page:'promotions'        },
-    { label:'My Profile',          sub:'Edit your details',   icon:'◉', page:'profile'      },
+    { label:'My QR Code',          sub:'Scan to earn points',  icon:'▦', page:'qr'           },
+    { label:'Promotions',          sub:'View promotions',      icon:'⊞', page:'promotions'   },
+    { label:'My Profile',          sub:'Edit your details',    icon:'◉', page:'profile'      },
   ];
 
-  // Stats columns count — 3 on desktop, 2 on mobile
   const statsCols = isMobile ? 2 : 3;
 
   return (
@@ -96,7 +95,7 @@ export default function DashboardPage({ onNavigate }) {
         </h1>
       </div>
 
-      {/* Points Hero — full width, same as stats below */}
+      {/* Points Hero */}
       <div style={{ marginBottom:12 }}>
         <div
           onClick={() => onNavigate('qr')}
@@ -120,7 +119,7 @@ export default function DashboardPage({ onNavigate }) {
         </div>
       </div>
 
-      {/* Stats — same width as hero above */}
+      {/* Stats */}
       <div style={{ display:'grid', gridTemplateColumns:`repeat(${statsCols},1fr)`, gap:12, marginBottom:20 }}>
         <StatsCard title="This Month"   value={`+${thisMonthPts.toFixed(2)}`} subtitle="points earned" icon="📈" />
         <StatsCard title="Transactions" value={earnCount}                      subtitle="earn events"   icon="🧾" />
@@ -134,7 +133,7 @@ export default function DashboardPage({ onNavigate }) {
         ))}
       </div>
 
-      {/* Recent Transactions */}
+      {/* Recent Transactions — EN and RM only */}
       <div style={{ background:theme.bgCard, border:`1px solid ${theme.border}`, borderRadius:16, overflow:'hidden' }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'16px 20px', borderBottom:`1px solid ${theme.border}` }}>
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
@@ -145,23 +144,26 @@ export default function DashboardPage({ onNavigate }) {
         </div>
         {loadingTx ? (
           <div style={{ padding:40, textAlign:'center', color:theme.textFaint, fontFamily:"'Space Mono',monospace", fontSize:12 }}>Loading...</div>
-        ) : txs.length===0 ? (
+        ) : txs.filter(t => ['en','rm'].includes((t.ID||'').trim().toLowerCase())).length===0 ? (
           <div style={{ padding:40, textAlign:'center', color:theme.textFaint, fontFamily:"'Space Mono',monospace", fontSize:12 }}>No transactions yet. Start shopping to earn points!</div>
-        ) : txs.map((tx, i) => {
-          const type = (tx.ID||'EN').toLowerCase();
+        ) : txs
+            .filter(t => ['en','rm'].includes((t.ID||'').trim().toLowerCase()))
+            .map((tx, i, arr) => {
+          const type = (tx.ID||'EN').trim().toLowerCase();
+          const pts  = parseFloat(tx.RATE||0);
           return (
-            <div key={tx.IDX||i} style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 20px', borderBottom: i<txs.length-1?`1px solid ${theme.border}`:'none', transition:'background 0.15s' }}
+            <div key={tx.IDX||i} style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 20px', borderBottom: i<arr.length-1?`1px solid ${theme.border}`:'none', transition:'background 0.15s' }}
               onMouseEnter={e => e.currentTarget.style.background=theme.bgSubtle}
               onMouseLeave={e => e.currentTarget.style.background='transparent'}>
               <div style={{ width:36, height:36, borderRadius:10, flexShrink:0, background:txBg(type,theme), border:`1px solid ${txBorderC(type,theme)}`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:14 }}>
-                {type==='en'?'🛒':type==='rd'?'🎁':'⭐'}
+                {type==='en'?'🛒':'⚙'}
               </div>
               <div style={{ flex:1, minWidth:0 }}>
                 <div style={{ color:theme.textSub, fontSize:12, fontWeight:600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{tx.COMPANY_NAME||tx.INVOICENO||'Transaction'}</div>
                 <div style={{ color:theme.textFaint, fontSize:10, fontFamily:"'Space Mono',monospace", marginTop:2 }}>{(tx.INVOICE_DATE||'').slice(0,10)}</div>
               </div>
               <div style={{ color:txColor(type,theme), fontFamily:"'Bebas Neue',sans-serif", fontSize:18, fontWeight:900, flexShrink:0 }}>
-                {type==='en'?'+':'-'}{parseFloat(tx.RATE||0).toFixed(2)}
+                {type==='en'?'+':''}{pts.toFixed(2)}
               </div>
             </div>
           );
