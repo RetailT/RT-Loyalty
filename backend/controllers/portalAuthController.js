@@ -20,15 +20,19 @@ async function getPointsSummary(posPool, serialNo, posbackCode) {
       SELECT
         SUM(CASE WHEN ID='EN' THEN RATE ELSE 0 END) AS totalPoints,
         SUM(CASE WHEN ID='RD' THEN RATE ELSE 0 END) AS redeemedPoints,
-        SUM(CASE WHEN ID='EN' THEN RATE
-             WHEN ID='RD' THEN -RATE
-             WHEN ID='RM' THEN RATE
-             ELSE 0 END)                             AS availablePoints
+        SUM(CASE 
+              WHEN ID='EN' THEN RATE
+              WHEN ID='RD' THEN -RATE
+              ELSE 0 
+            END) AS availablePoints
       FROM dbo.tb_LOYALTY_TRANSACTION
       WHERE SERIALNO = @sno
         AND COMPANY_CODE = @code
+        AND ID IN ('EN', 'RD')
     `);
+
   const row = r.recordset[0] || {};
+
   return {
     totalPoints:     parseFloat(row.totalPoints     || 0),
     redeemedPoints:  parseFloat(row.redeemedPoints  || 0),
