@@ -6,7 +6,7 @@ const navLinks = [
   { label:'Dashboard',   page:'dashboard',    icon:'⬡' },
   { label:'History',     page:'transactions', icon:'◈' },
   { label:'Promotions',  page:'promotions',   icon:'⊞' },
-  { label:'Tiers',       page:'tiers',        icon:'◫' },
+  { label:'T&Cs',        page:'terms',        icon:'◫' },
   { label:'My QR',       page:'qr',           icon:'▦' },
   { label:'Profile',     page:'profile',      icon:'◉' },
 ];

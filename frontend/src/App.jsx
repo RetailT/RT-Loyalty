@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ThemeProvider }          from './context/ThemeContext';
 import { AuthProvider, useAuth }  from './context/AuthContext';
 import useResponsive              from './hooks/useResponsive';
@@ -12,15 +12,16 @@ import LoginPage        from './pages/LoginPage';
 import DashboardPage    from './pages/DashboardPage';
 import TransactionsPage from './pages/TransactionsPage';
 import PromotionsPage   from './pages/PromotionsPage';
+import TermsPage        from './pages/TermsPage';
 import ProfilePage      from './pages/ProfilePage';
-import TiersPage        from './pages/TiersPage';
 import QRPage           from './pages/QRPage';
 
-const PROTECTED = ['dashboard', 'transactions', 'promotions', 'profile', 'tiers', 'qr'];
+const PROTECTED = ['dashboard', 'transactions', 'promotions', 'profile', 'qr'];
+const PUBLIC    = ['landing', 'login', 'terms'];
 
 function getPageFromHash() {
-  const hash = window.location.hash.replace('#', '').trim();
-  const valid = ['landing', 'login', 'dashboard', 'transactions', 'promotions', 'profile', 'tiers', 'qr'];
+  const hash  = window.location.hash.replace('#', '').trim();
+  const valid = [...PROTECTED, ...PUBLIC];
   return valid.includes(hash) ? hash : 'landing';
 }
 
@@ -29,11 +30,11 @@ function AppContent() {
   const { isLoggedIn, loading } = useAuth();
   const { isMobile }            = useResponsive();
 
-  const navigate = (p) => {
+  const navigate = useCallback((p) => {
     setPage(p);
     window.location.hash = p;
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, []);
 
   useEffect(() => {
     const onHashChange = () => setPage(getPageFromHash());
@@ -41,13 +42,19 @@ function AppContent() {
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
+  // Redirect to login if accessing protected page while logged out
   useEffect(() => {
-    if (!loading && PROTECTED.includes(page) && !isLoggedIn) navigate('login');
-  }, [page, isLoggedIn, loading]);
+    if (!loading && !isLoggedIn && PROTECTED.includes(page)) {
+      navigate('login');
+    }
+  }, [page, isLoggedIn, loading, navigate]);
 
+  // Redirect to dashboard if logged in and on login or landing ONLY
   useEffect(() => {
-    if (!loading && isLoggedIn && (page === 'login' || page === 'landing')) navigate('dashboard');
-  }, [isLoggedIn, loading]);
+    if (!loading && isLoggedIn && (page === 'login' || page === 'landing')) {
+      navigate('dashboard');
+    }
+  }, [isLoggedIn, loading, page, navigate]);
 
   if (loading) {
     return (
@@ -68,8 +75,8 @@ function AppContent() {
       case 'dashboard':    return <DashboardPage    onNavigate={navigate} />;
       case 'transactions': return <TransactionsPage onNavigate={navigate} />;
       case 'promotions':   return <PromotionsPage   onNavigate={navigate} />;
+      case 'terms':        return <TermsPage        onNavigate={navigate} />;
       case 'profile':      return <ProfilePage      onNavigate={navigate} />;
-      case 'tiers':        return <TiersPage        onNavigate={navigate} />;
       case 'qr':           return <QRPage           onNavigate={navigate} />;
       default:             return <LandingPage      onNavigate={navigate} />;
     }

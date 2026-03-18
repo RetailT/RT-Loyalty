@@ -78,7 +78,7 @@ export default function QRPage() {
         {/* QR */}
         <div style={{ display:'flex', justifyContent:'center', marginBottom:24 }}>
           <div style={{ padding:16, background:'#fff', borderRadius:20, boxShadow:'0 4px 20px rgba(0,0,0,0.1)' }}>
-            <QRDisplay value={user.serialNo} size={isMobile ? 180 : 220} />
+            <QRDisplay value={user.serialNo} size={isMobile ? 300 : 360} />
           </div>
         </div>
 

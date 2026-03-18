@@ -50,7 +50,21 @@ export default function LandingPage({ onNavigate }) {
           <div style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'5px 14px', borderRadius:40, background:'rgba(255,107,0,0.08)', border:'1px solid rgba(255,107,0,0.25)', color:'#FF6B00', fontSize:11, fontFamily:"'Space Mono',monospace", letterSpacing:2, textTransform:'uppercase', marginBottom:24 }}>
             ◈ Sri Lanka's Retail Loyalty Network
           </div>
-          <h1 style={{ color:theme.text, fontFamily:"'Bebas Neue',sans-serif", fontSize: isMobile?56:80, letterSpacing:3, lineHeight:0.95, marginBottom:20 }}>
+          <h1 style={{
+            color:theme.text,
+            fontFamily:"'Bebas Neue',sans-serif",
+            fontSize: isMobile?56:80,
+            letterSpacing:3,
+            lineHeight:0.95,
+            marginBottom:20,
+            background: mode==='dark'
+              ? 'linear-gradient(135deg,rgba(255,107,0,0.18),rgba(255,140,0,0.10))'
+              : 'linear-gradient(135deg,rgba(255,107,0,0.12),rgba(255,140,0,0.06))',
+            border: `1px solid rgba(255,107,0,0.35)`,
+            borderRadius: 20,
+            padding: isMobile?'28px 20px':'36px 40px',
+            boxShadow: '0 8px 32px rgba(255,107,0,0.15)',
+          }}>
             SHOP MORE.<br/><span style={{ color:'#FF6B00' }}>EARN MORE.</span><br/>REWARD YOURSELF.
           </h1>
           <p style={{ color:theme.textMuted, fontSize: isMobile?14:16, lineHeight:1.8, maxWidth:480, margin:'0 auto 36px' }}>
@@ -87,19 +101,6 @@ export default function LandingPage({ onNavigate }) {
         </div>
         <div style={{ display:'grid', gridTemplateColumns: isMobile?'1fr 1fr':'repeat(4,1fr)', gap:16 }}>
           {benefits.map(b => <BenefitCard key={b.title} b={b} />)}
-        </div>
-      </section>
-
-      {/* Tiers */}
-      <section style={{ background: mode==='dark'?'#111':'#f8f8f8', padding: isMobile?'48px 16px':'72px 32px' }}>
-        <div style={{ maxWidth:1100, margin:'0 auto' }}>
-          <div style={{ textAlign:'center', marginBottom:40 }}>
-            <h2 style={{ color:theme.text, fontFamily:"'Bebas Neue',sans-serif", fontSize: isMobile?32:42, letterSpacing:2, marginBottom:8 }}>LOYALTY CARD TYPES</h2>
-            <p style={{ color:theme.textMuted, fontSize:13 }}>Choose the right card for your lifestyle</p>
-          </div>
-          <div style={{ display:'grid', gridTemplateColumns:`repeat(${isMobile?2:4},1fr)`, gap:16 }}>
-            {loyaltyTypes.map(t => <TierCard key={t.name} t={t} />)}
-          </div>
         </div>
       </section>
 

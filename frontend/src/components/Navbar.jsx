@@ -8,7 +8,7 @@ const navItems = [
   { id:'dashboard',    label:'Dashboard', icon:'⬡' },
   { id:'transactions', label:'History',   icon:'◈' },
   { id:'promotions',   label:'Promotions', icon:'⊞' },
-  { id:'tiers',        label:'Tiers',     icon:'◫' },
+  { id:'terms',        label:'T&Cs',     icon:'◫' },
   { id:'qr',           label:'My QR',     icon:'▦' },
   { id:'profile',      label:'Profile',   icon:'◉' },
 ];
@@ -31,7 +31,12 @@ export default function Navbar({ currentPage, onNavigate }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleNav = (page) => { onNavigate(page); setMenuOpen(false); setTabletNav(false); };
+  const handleNav = (page) => {
+    console.log('navigating to:', page);
+    onNavigate(page);
+    setMenuOpen(false);
+    setTabletNav(false);
+  };
   const handleLogout = () => { logout(); onNavigate('landing'); setMenuOpen(false); };
 
   return (

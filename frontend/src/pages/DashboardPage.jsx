@@ -77,8 +77,8 @@ export default function DashboardPage({ onNavigate }) {
 
   const quickLinks = [
     { label:'Transaction History', sub:'All point activities', icon:'◈', page:'transactions' },
-    { label:'Rewards Catalog',     sub:'Browse & redeem',     icon:'⊞', page:'rewards'      },
-    { label:'Loyalty Type',        sub:'View your card type', icon:'◫', page:'tiers'        },
+    { label:'My QR Code',     sub:'Scan to earn points',     icon:'▦', page:'qr'      },
+    { label:'Promotions',        sub:'View promotions', icon:'⊞', page:'promotions'        },
     { label:'My Profile',          sub:'Edit your details',   icon:'◉', page:'profile'      },
   ];
 
@@ -98,7 +98,9 @@ export default function DashboardPage({ onNavigate }) {
 
       {/* Points Hero — full width, same as stats below */}
       <div style={{ marginBottom:12 }}>
-        <div style={{ background:'linear-gradient(135deg,#FF6B00,#FF8C00)', borderRadius:20, padding: isMobile?20:28, position:'relative', overflow:'hidden', boxShadow:'0 16px 48px rgba(255,107,0,0.3)' }}>
+        <div
+          onClick={() => onNavigate('qr')}
+          style={{ background:'linear-gradient(135deg,#FF6B00,#FF8C00)', borderRadius:20, padding: isMobile?20:28, position:'relative', overflow:'hidden', boxShadow:'0 16px 48px rgba(255,107,0,0.3)', cursor:'pointer' }}>
           <div style={{ position:'absolute', top:-30, right:-30, width:140, height:140, background:'rgba(255,255,255,0.05)', borderRadius:'50%' }} />
           <div style={{ position:'absolute', bottom:-20, left:-20, width:100, height:100, background:'rgba(0,0,0,0.1)', borderRadius:'50%' }} />
           <div style={{ position:'relative', display:'flex', justifyContent:'space-between', alignItems:'flex-start', flexWrap:'wrap', gap:16 }}>
