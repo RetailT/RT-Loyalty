@@ -39,7 +39,7 @@ export default function LoginPage({ onNavigate }) {
       if (res.maskedPhone) setMaskedPhone(res.maskedPhone);
       setHasEmail(res.hasEmail);
       setStep('otp');
-      setTimer(120);
+      setTimer(60);
     } catch (e) {
       setError(e.message || 'No loyalty account found.');
     } finally {
@@ -218,7 +218,7 @@ export default function LoginPage({ onNavigate }) {
                   </span>
                 ) : (
                   <button
-                    onClick={() => { setTimer(120); setOtp(['','','','','','']); handleSendOTP(); }}
+                    onClick={() => { setTimer(60); setOtp(['','','','','','']); handleSendOTP(); }}
                     style={{ background: 'none', border: 'none', color: '#FF6B00', fontSize: 12, cursor: 'pointer', fontFamily: "'Space Mono',monospace" }}
                   >
                     Resend OTP →

@@ -1,18 +1,20 @@
-const API = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API = process.env.REACT_APP_API_URL || 'http://localhost:10000';
 
-// Take Subdomain slug — backend X-Shop-Slug header dev mode support — and fetch company info
 function getSlug() {
   const host  = window.location.hostname;
   const parts = host.split('.');
+  const DEFAULT_SLUG = process.env.REACT_APP_DEFAULT_SHOP || 'retailtarget';
+
   if (host === 'localhost' || host === '127.0.0.1' || parts.length < 2) {
-    return new URLSearchParams(window.location.search).get('shop') || 'keells-nugegoda';
+    return new URLSearchParams(window.location.search).get('shop') || DEFAULT_SLUG;
   }
-  
-  // Vercel preview URLs ignore
+
+  // Vercel preview URLs
   if (host.includes('vercel.app')) {
-    return new URLSearchParams(window.location.search).get('shop') || 'keells-nugegoda';
+    return new URLSearchParams(window.location.search).get('shop') || DEFAULT_SLUG;
   }
-  
+
+  // Production subdomain: kamals.loyaltyapp.lk → 'kamals'
   return parts[0];
 }
 
