@@ -7,16 +7,16 @@ async function getPointsSummary(posPool, serialNo, posbackCode) {
     .query(`
       SELECT
         SUM(CASE WHEN ID='EN' THEN RATE ELSE 0 END) AS totalPoints,
-        SUM(CASE WHEN ID='RD' THEN RATE ELSE 0 END) AS redeemedPoints,
+        SUM(CASE WHEN ID='RM' THEN RATE ELSE 0 END) AS redeemedPoints,
         SUM(CASE 
               WHEN ID='EN' THEN RATE
-              WHEN ID='RD' THEN -RATE
+              WHEN ID='RM' THEN -RATE
               ELSE 0 
             END) AS availablePoints
       FROM dbo.tb_LOYALTY_TRANSACTION
       WHERE SERIALNO = @sno
         AND COMPANY_CODE = @code
-        AND ID IN ('EN', 'RD')
+        AND ID IN ('EN', 'RM')
     `);
 
   const row = r.recordset[0] || {};
@@ -114,7 +114,7 @@ exports.getTransactions = async (req, res) => {
 
     let typeFilter = '';
     if (type === 'earn')   typeFilter = "AND ID = 'EN'";
-    if (type === 'redeem') typeFilter = "AND ID = 'RD'";
+    if (type === 'redeem') typeFilter = "AND ID = 'RM'";
 
     const posPool = await getPosbackPool();
     const result  = await posPool.request()
@@ -272,7 +272,7 @@ exports.redeemReward = async (req, res) => {
           (SERIALNO, COMPANY_CODE, CUSTOMER_NAME, ID, RATE, AMOUNT,
            INVOICENO, INVOICE_DATE, INVOICE_TIME, SMS, LOYALTY_TYPE, CURRATE)
         VALUES
-          (@sno, @code, @name, 'RD', @rate, 0, @desc,
+          (@sno, @code, @name, 'RM', @rate, 0, @desc,
            GETDATE(), CONVERT(VARCHAR(8), GETDATE(), 108), 'T', '', 0)
       `);
 
