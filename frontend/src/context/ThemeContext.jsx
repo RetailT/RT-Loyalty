@@ -1,15 +1,15 @@
 import React, { createContext, useContext, useState } from 'react';
 
 const darkTheme = {
-  bg:'#0a0a0a', bgCard:'#1a1a1a', bgSubtle:'#222222', bgAccent:'#2a2a2a',
+  bg:'#0a0a0a', bgCard:'#1e1e1e', bgSubtle:'#252525', bgAccent:'#2a2a2a',
   navBg:'rgba(10,10,10,0.95)', navBorder:'#2a2a2a', navShadow:'0 1px 0 rgba(255,107,0,0.12)',
   modalBg:'rgba(0,0,0,0.75)', pointsBg:'rgba(255,107,0,0.10)', pointsBorder:'rgba(255,107,0,0.3)',
-  text:'#ffffff', textSub:'#e0e0e0', textMuted:'#aaaaaa', textFaint:'#666666',
-  border:'#333333', borderHover:'#FF6B00',
+  text:'#ffffff', textSub:'#e8e8e8', textMuted:'#c0c0c0', textFaint:'#888888',
+  border:'#3a3a3a', borderHover:'#FF6B00',
   successText:'#34d399', successBg:'rgba(52,211,153,0.10)', successBorder:'rgba(52,211,153,0.3)',
   errorText:'#f87171', errorBg:'rgba(248,113,113,0.10)', errorBorder:'rgba(248,113,113,0.3)',
   redText:'#f87171', shadow:'0 4px 24px rgba(0,0,0,0.6)', shadowHover:'0 8px 40px rgba(255,107,0,0.20)',
-  cardHoverBg:'#222222', cardHoverTransform:'translateY(-2px)',
+  cardHoverBg:'#252525', cardHoverTransform:'translateY(-2px)',
 };
 
 const lightTheme = {
