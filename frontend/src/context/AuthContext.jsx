@@ -18,10 +18,16 @@ export function AuthProvider({ children }) {
     if (tk) {
       try {
         const payload = JSON.parse(atob(tk.split('.')[1]));
-        fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/portal/auth/logout`, {
+        fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:10000'}/api/portal/auth/logout`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: payload.name, phone: payload.phone, reason }),
+          body: JSON.stringify({
+            name:        payload.name,
+            phone:       payload.phone,
+            companyCode: payload.companyCode,
+            companyName: payload.companyName,
+            reason,
+          }),
         }).catch(() => {});
       } catch {}
     }
@@ -87,9 +93,9 @@ export function AuthProvider({ children }) {
             <div style={{ width:56, height:56, background:'linear-gradient(135deg,#FF6B00,#FF8C00)', borderRadius:14, display:'flex', alignItems:'center', justifyContent:'center', fontSize:26, margin:'0 auto 16px' }}>⏱</div>
             <h2 style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:24, letterSpacing:2, color:'#111', marginBottom:8 }}>SESSION EXPIRED</h2>
             <p style={{ color:'#666', fontSize:13, lineHeight:1.7, marginBottom:24 }}>Please log in again to continue.</p>
-            <button 
-              autoFocus 
-              onClick={() => setSessionExpired(false)} 
+            <button
+              autoFocus
+              onClick={() => setSessionExpired(false)}
               style={{ width:'100%', padding:'13px', background:'linear-gradient(135deg,#FF6B00,#FF8C00)', border:'none', borderRadius:10, color:'#fff', fontFamily:"'Space Mono',monospace", fontSize:11, letterSpacing:2, textTransform:'uppercase', cursor:'pointer' }}
             >
               Log In Again →

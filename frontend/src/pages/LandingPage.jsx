@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useTheme, useCardHover } from '../context/ThemeContext';
 import useResponsive from '../hooks/useResponsive';
-import { fs, fh, fm } from '../utils/fontScale';
 
 function getSlug() {
   const host  = window.location.hostname;
   const parts = host.split('.');
-  // localhost or vercel preview — use ?shop param or default to first DB company
   if (host === 'localhost' || host === '127.0.0.1' || host.includes('vercel.app')) {
     return new URLSearchParams(window.location.search).get('shop') || '';
   }
@@ -36,9 +34,14 @@ export default function LandingPage({ onNavigate }) {
     if (slug) headers['X-Shop-Slug'] = slug;
 
     fetch(`${API}/api/portal/company`, { headers })
-      .then(r => r.json())
-      .then(d => { if (d.success) setCompany(d.company); })
-      .catch(() => {});
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then(d => {
+        if (d.success && d.company) setCompany(d.company);
+      })
+      .catch(err => console.warn('[LandingPage] company fetch failed:', err.message));
   }, []);
 
   const benefits = [
@@ -93,12 +96,13 @@ export default function LandingPage({ onNavigate }) {
         </div>
       </section>
 
-      {/* Company Info */}
+      {/* Company Info — only shown when company resolved */}
       {company && (
         <section style={{ background: mode==='dark'?'#111':'#fff8f0', borderTop:`1px solid rgba(255,107,0,0.15)`, borderBottom:`1px solid rgba(255,107,0,0.15)` }}>
           <div style={{ maxWidth:900, margin:'0 auto', padding: isMobile?'20px 16px':'24px 32px' }}>
             <div style={{ display:'flex', flexWrap:'wrap', alignItems:'center', justifyContent: isMobile?'flex-start':'space-between', gap:20 }}>
-              {/* Company name */}
+
+              {/* Company name — uses 'name' from backend */}
               <div style={{ display:'flex', alignItems:'center', gap:12 }}>
                 <div style={{ width:44, height:44, background:'linear-gradient(135deg,#FF6B00,#FF8C00)', borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center', fontSize:23, flexShrink:0 }}>🏪</div>
                 <div>
@@ -109,7 +113,7 @@ export default function LandingPage({ onNavigate }) {
 
               {!isMobile && <div style={{ width:1, height:36, background:theme.border }} />}
 
-              {/* Address */}
+              {/* Address — uses 'address' from backend */}
               {company.address && (
                 <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                   <div style={{ width:36, height:36, background:'rgba(255,107,0,0.08)', border:'1px solid rgba(255,107,0,0.2)', borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, flexShrink:0 }}>📍</div>
@@ -122,7 +126,7 @@ export default function LandingPage({ onNavigate }) {
 
               {!isMobile && company.phone && <div style={{ width:1, height:36, background:theme.border }} />}
 
-              {/* Phone */}
+              {/* Phone — uses 'phone' from backend */}
               {company.phone && (
                 <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                   <div style={{ width:36, height:36, background:'rgba(255,107,0,0.08)', border:'1px solid rgba(255,107,0,0.2)', borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, flexShrink:0 }}>📞</div>
@@ -132,6 +136,7 @@ export default function LandingPage({ onNavigate }) {
                   </div>
                 </div>
               )}
+
             </div>
           </div>
         </section>
