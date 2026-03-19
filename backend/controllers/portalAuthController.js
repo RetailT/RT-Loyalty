@@ -22,7 +22,7 @@ async function getPointsSummary(posPool, serialNo, posbackCode) {
         SUM(CASE WHEN LTRIM(RTRIM(ID))='RM' THEN ABS(RATE) ELSE 0 END) AS redeemedPoints,
         SUM(CASE
               WHEN LTRIM(RTRIM(ID))='EN' THEN RATE
-              WHEN LTRIM(RTRIM(ID))='RM' THEN RATE
+              WHEN LTRIM(RTRIM(ID))='RM' THEN -ABS(RATE)
               ELSE 0
             END) AS availablePoints
       FROM dbo.tb_LOYALTY_TRANSACTION
@@ -54,6 +54,43 @@ function shapeCustomer(row, points) {
   };
 }
 
+// ── Log to tb_LOYALTY_USERLOG ─────────────────────────────
+// setLogin  = true  → LOGIN_TIME  = GETDATE()  (SQL server local time, no UTC offset issue)
+// setLogout = true  → LOGOUT_TIME = GETDATE()
+// otpCode passed directly for OTP_REQUEST and LOGIN actions
+async function logAction(posPool, {
+  username,
+  customerName,
+  companyCode,
+  companyName,
+  action,
+  otpCode    = '',
+  setLogin   = false,
+  setLogout  = false,
+}) {
+  try {
+    await posPool.request()
+      .input('username',  sql.NVarChar, username     || '')
+      .input('custName',  sql.NVarChar, customerName || '')
+      .input('compCode',  sql.NVarChar, companyCode  || '')
+      .input('compName',  sql.NVarChar, companyName  || '')
+      .input('action',    sql.NVarChar, action       || '')
+      .input('otp',       sql.NVarChar, otpCode      || '')
+      .query(`
+        INSERT INTO dbo.tb_LOYALTY_USERLOG
+          (USERNAME, CUSTOMER_NAME, COMPANY_CODE, COMPANY_NAME,
+           ACTION, OTP_CODE, LOGIN_TIME, LOGOUT_TIME)
+        VALUES
+          (@username, @custName, @compCode, @compName,
+           @action,   @otp,
+           ${setLogin  ? 'GETDATE()' : 'NULL'},
+           ${setLogout ? 'GETDATE()' : 'NULL'})
+      `);
+  } catch (err) {
+    console.error('[logAction]', err.message);
+  }
+}
+
 /* ── sendOtp ─────────────────────────────────────────────── */
 exports.sendOtp = async (req, res) => {
   try {
@@ -62,7 +99,7 @@ exports.sendOtp = async (req, res) => {
 
     if (!phone) return res.status(400).json({ success: false, message: 'Input required.' });
 
-    const input = phone.trim();
+    const input   = phone.trim();
     const posPool = await getPosbackPool();
 
     const found = await posPool.request()
@@ -92,9 +129,10 @@ exports.sendOtp = async (req, res) => {
       });
     }
 
-    const custRow   = found.recordset[0];
-    const mobileNo  = custRow.MOBILENO;
-    const shop      = custRow.COMPANY_NAME || COMPANY_NAME;
+    const custRow  = found.recordset[0];
+    const mobileNo = custRow.MOBILENO;
+    const shop     = custRow.COMPANY_NAME || COMPANY_NAME;
+    const custName = custRow.CUSTDISPLAY_NAME || custRow.CUSTFULL_NAME || '';
 
     if (!mobileNo) {
       return res.status(400).json({
@@ -144,18 +182,25 @@ exports.sendOtp = async (req, res) => {
           VALUES (@email, @phone, @code, @otp, @expires, GETDATE());
       `);
 
+    // ✅ OTP_REQUEST — OTP code saved, LOGIN_TIME = SQL GETDATE()
+    logAction(posPool, {
+      username:     mobileNo,
+      customerName: custName,
+      companyCode:  POSBACK_CODE,
+      companyName:  shop,
+      action:       'OTP_REQUEST',
+      otpCode:      otp,      // ← OTP code saved
+      setLogin:     true,     // ← LOGIN_TIME = GETDATE()
+      setLogout:    false,
+    });
+
     sendOtpSMS(mobileNo, otp, shop).catch(err =>
       console.error('[sendOtp] SMS error:', err.message)
     );
 
-    const hasEmail = !!(custRow.EMAIL || '').trim();
-    if (hasEmail) {
-      console.log(`📧 OTP email queued for ${mobileNo} @ ${shop}`);
-    }
-
-    console.log(`📱 OTP for ${mobileNo} @ ${shop}: ${otp}`);
-
+    const hasEmail    = !!(custRow.EMAIL || '').trim();
     const maskedPhone = mobileNo.slice(0, 3) + '****' + mobileNo.slice(-3);
+    console.log(`📱 OTP for ${mobileNo} @ ${shop}: ${otp}`);
 
     res.json({
       success: true,
@@ -261,6 +306,18 @@ exports.verifyOtp = async (req, res) => {
       { expiresIn: JWT_EXPIRES }
     );
 
+    // ✅ LOGIN — OTP code saved, LOGIN_TIME = SQL GETDATE()
+    logAction(posPool, {
+      username:     mobileNo,
+      customerName: customer.name,
+      companyCode:  POSBACK_CODE,
+      companyName:  customer.companyName,
+      action:       'LOGIN',
+      otpCode:      otp,      // ← verified OTP code saved
+      setLogin:     true,     // ← LOGIN_TIME = GETDATE()
+      setLogout:    false,
+    });
+
     console.log(`✅ Login — ${customer.name} (${customer.phone}) @ ${customer.companyName} — ${nowStr()}`);
     res.json({ success: true, token, customer });
   } catch (err) {
@@ -311,6 +368,18 @@ exports.qrLogin = async (req, res) => {
       { expiresIn: JWT_EXPIRES }
     );
 
+    // ✅ QR_LOGIN — no OTP, LOGIN_TIME = SQL GETDATE()
+    logAction(posPool, {
+      username:     customer.phone,
+      customerName: customer.name,
+      companyCode:  POSBACK_CODE,
+      companyName:  customer.companyName,
+      action:       'QR_LOGIN',
+      otpCode:      '',       // no OTP for QR login
+      setLogin:     true,     // ← LOGIN_TIME = GETDATE()
+      setLogout:    false,
+    });
+
     console.log(`✅ QR Login — ${customer.name} (${customer.phone}) @ ${customer.companyName} — ${nowStr()}`);
     res.json({ success: true, token, customer });
   } catch (err) {
@@ -320,8 +389,30 @@ exports.qrLogin = async (req, res) => {
 };
 
 /* ── logoutPortal ────────────────────────────────────────── */
-exports.logoutPortal = (req, res) => {
-  const { name, phone, reason } = req.body || {};
-  console.log(`🔴 Logout — ${name || '?'} (${phone || '?'}) — ${reason || 'manual'} — ${nowStr()}`);
-  res.json({ success: true });
+exports.logoutPortal = async (req, res) => {
+  try {
+    const { name, phone, companyCode, companyName, reason } = req.body || {};
+    console.log(`🔴 Logout — ${name || '?'} (${phone || '?'}) — ${reason || 'manual'} — ${nowStr()}`);
+
+    if (phone) {
+      const posPool = await getPosbackPool();
+
+      // ✅ LOGOUT — no OTP, LOGOUT_TIME = SQL GETDATE() only
+      logAction(posPool, {
+        username:     phone,
+        customerName: name,
+        companyCode,
+        companyName,
+        action:       'LOGOUT',
+        otpCode:      '',       // no OTP on logout
+        setLogin:     false,    // ← LOGIN_TIME = NULL
+        setLogout:    true,     // ← LOGOUT_TIME = GETDATE()
+      });
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[logoutPortal]', err.message);
+    res.json({ success: true });
+  }
 };

@@ -30,6 +30,7 @@ app.use(cors({
       process.env.PORTAL_FRONTEND_URL || 'http://localhost:3001',
       'http://localhost:3000',
       'http://localhost:3001',
+      'https://rt-loyalty-frontend.vercel.app',  // ← add
     ];
 
     // Allow any subdomain of main domain: *.rtpos.lk
