@@ -100,7 +100,7 @@ exports.sendOtp = async (req, res) => {
     if (!phone) return res.status(400).json({ success: false, message: 'Input required.' });
 
     const input   = phone.trim();
-    const posPool = await getPosbackPool();
+    const posPool = req.shopPool; // await getPosbackPool(); // use pool from companyMiddleware
 
     const found = await posPool.request()
       .input('input', sql.NVarChar, input)
@@ -224,7 +224,7 @@ exports.verifyOtp = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Input and OTP required.' });
 
     const input   = phone.trim();
-    const posPool = await getPosbackPool();
+    const posPool = req.shopPool; // await getPosbackPool(); // use pool from companyMiddleware
 
     const custSearch = await posPool.request()
       .input('input', sql.NVarChar, input)
@@ -335,7 +335,7 @@ exports.qrLogin = async (req, res) => {
     if (!qrCode)
       return res.status(400).json({ success: false, message: 'QR code required.' });
 
-    const posPool = await getPosbackPool();
+    const posPool = req.shopPool; // await getPosbackPool(); // use pool from companyMiddleware
     const result  = await posPool.request()
       .input('sno',  sql.NVarChar, qrCode.trim())
       .input('code', sql.Char,     POSBACK_CODE)
@@ -395,7 +395,7 @@ exports.logoutPortal = async (req, res) => {
     console.log(`🔴 Logout — ${name || '?'} (${phone || '?'}) — ${reason || 'manual'} — ${nowStr()}`);
 
     if (phone) {
-      const posPool = await getPosbackPool();
+      const posPool = req.shopPool; // await getPosbackPool(); // use pool from companyMiddleware
 
       // ✅ LOGOUT — no OTP, LOGOUT_TIME = SQL GETDATE() only
       logAction(posPool, {

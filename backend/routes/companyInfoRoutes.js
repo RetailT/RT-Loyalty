@@ -1,14 +1,25 @@
-const { getPosbackPool, sql } = require('../config/userdb');
+const express = require('express');
+const router  = express.Router();
+const { sql } = require('../config/userdb');
 
-exports.companyInfoHandler = async (req, res) => {
+// ── GET /api/company-info ──────────────────────────────────
+// Uses req.shopPool + req.company from companyMiddleware
+// Do NOT use getPosbackPool() here — that always hits the master server
+router.get('/', async (req, res) => {
   try {
-    const posPool = await getPosbackPool();
+    // ✅ Always use middleware-provided pool (correct shop server)
+    const posPool = req.shopPool;
+    const code    = req.company?.POSBACK_CODE;
 
-    // Get company code from companyMiddleware (req.company.POSBACK_CODE)
-    const code = req.company?.POSBACK_CODE || '01';
+    if (!posPool || !code) {
+      return res.status(400).json({
+        success: false,
+        message: 'Shop context missing. Check companyMiddleware.',
+      });
+    }
 
     const result = await posPool.request()
-      .input('code', sql.Char, code.trim())
+      .input('code', sql.NVarChar, code.trim())
       .query(`
         SELECT TOP 1
           LTRIM(RTRIM(COMPANY_CODE)) AS code,
@@ -19,25 +30,16 @@ exports.companyInfoHandler = async (req, res) => {
         WHERE LTRIM(RTRIM(COMPANY_CODE)) = LTRIM(RTRIM(@code))
       `);
 
-    // Fallback — return first company if not found
     if (!result.recordset.length) {
-      const fallback = await posPool.request()
-        .query(`SELECT TOP 1
-          LTRIM(RTRIM(COMPANY_CODE)) AS code,
-          LTRIM(RTRIM(COMPANY_NAME)) AS name,
-          LTRIM(RTRIM(ADDRESS))      AS address,
-          LTRIM(RTRIM(PHONE))        AS phone
-        FROM dbo.tb_COMPANY`);
-
-      if (!fallback.recordset.length)
-        return res.status(404).json({ success: false, message: 'Company not found.' });
-
-      return res.json({ success: true, company: fallback.recordset[0] });
+      return res.status(404).json({ success: false, message: 'Company not found.' });
     }
 
     res.json({ success: true, company: result.recordset[0] });
+
   } catch (err) {
     console.error('[companyInfo]', err.message);
     res.status(500).json({ success: false, message: 'Server error.', error: err.message });
   }
-};
+});
+
+module.exports = router;
