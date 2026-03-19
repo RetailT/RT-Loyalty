@@ -19,7 +19,8 @@ const companyMiddleware = async (req, res, next) => {
             SELECT TOP 1
               LTRIM(RTRIM(COMPANY_CODE)) AS POSBACK_CODE,
               LTRIM(RTRIM(COMPANY_NAME)) AS COMPANY_NAME,
-              LTRIM(RTRIM(ADDRESS))      AS CITY
+              LTRIM(RTRIM(ADDRESS))      AS CITY,
+              LTRIM(RTRIM(PHONE))        AS PHONE
             FROM dbo.tb_COMPANY
             WHERE LTRIM(RTRIM(DOMAIN_SLUG)) = @slug
           `);
@@ -34,7 +35,8 @@ const companyMiddleware = async (req, res, next) => {
               SELECT TOP 1
                 LTRIM(RTRIM(COMPANY_CODE)) AS POSBACK_CODE,
                 LTRIM(RTRIM(COMPANY_NAME)) AS COMPANY_NAME,
-                LTRIM(RTRIM(ADDRESS))      AS CITY
+                LTRIM(RTRIM(ADDRESS))      AS CITY,
+                LTRIM(RTRIM(PHONE))        AS PHONE
               FROM dbo.tb_COMPANY
               WHERE LTRIM(RTRIM(COMPANY_CODE)) = @slug
             `);
@@ -49,7 +51,8 @@ const companyMiddleware = async (req, res, next) => {
           SELECT TOP 1
             LTRIM(RTRIM(COMPANY_CODE)) AS POSBACK_CODE,
             LTRIM(RTRIM(COMPANY_NAME)) AS COMPANY_NAME,
-            LTRIM(RTRIM(ADDRESS))      AS CITY
+            LTRIM(RTRIM(ADDRESS))      AS CITY,
+            LTRIM(RTRIM(PHONE))        AS PHONE
           FROM dbo.tb_COMPANY
           WHERE LTRIM(RTRIM(COMPANY_CODE)) != ''
           ORDER BY IDX ASC

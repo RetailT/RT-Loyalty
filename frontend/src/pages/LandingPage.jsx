@@ -33,7 +33,8 @@ export default function LandingPage({ onNavigate }) {
     const headers = { 'Content-Type': 'application/json' };
     if (slug) headers['X-Shop-Slug'] = slug;
 
-    fetch(`${API}/api/portal/company`, { headers })
+    // ✅ cache: 'no-store' — always fetch fresh, no 304 cache issue
+    fetch(`${API}/api/portal/company`, { headers, cache: 'no-store' })
       .then(r => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
@@ -96,13 +97,24 @@ export default function LandingPage({ onNavigate }) {
         </div>
       </section>
 
-      {/* Company Info — only shown when company resolved */}
+      {/* Benefits */}
+      <section style={{ maxWidth:1100, margin:'0 auto', padding: isMobile?'48px 16px':'72px 32px' }}>
+        <div style={{ textAlign:'center', marginBottom:40 }}>
+          <h2 style={{ color:theme.text, fontFamily:"'Bebas Neue',sans-serif", fontSize: isMobile?37:48, letterSpacing:2, marginBottom:8 }}>WHY JOIN RETAIL LOYALTY?</h2>
+          <p style={{ color:theme.textMuted, fontSize:15 }}>Everything you need to make every rupee count</p>
+        </div>
+        <div style={{ display:'grid', gridTemplateColumns: isMobile?'1fr 1fr':'repeat(4,1fr)', gap:16 }}>
+          {benefits.map(b => <BenefitCard key={b.title} b={b} />)}
+        </div>
+      </section>
+
+      {/* Company Info — original layout, phone added */}
       {company && (
         <section style={{ background: mode==='dark'?'#111':'#fff8f0', borderTop:`1px solid rgba(255,107,0,0.15)`, borderBottom:`1px solid rgba(255,107,0,0.15)` }}>
-          <div style={{ maxWidth:900, margin:'0 auto', padding: isMobile?'20px 16px':'24px 32px' }}>
+          <div style={{ maxWidth:700, margin:'0 auto', padding: isMobile?'20px 24px':'24px 48px' }}>
             <div style={{ display:'flex', flexWrap:'wrap', alignItems:'center', justifyContent: isMobile?'flex-start':'space-between', gap:20 }}>
 
-              {/* Company name — uses 'name' from backend */}
+              {/* Company name */}
               <div style={{ display:'flex', alignItems:'center', gap:12 }}>
                 <div style={{ width:44, height:44, background:'linear-gradient(135deg,#FF6B00,#FF8C00)', borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center', fontSize:23, flexShrink:0 }}>🏪</div>
                 <div>
@@ -113,7 +125,7 @@ export default function LandingPage({ onNavigate }) {
 
               {!isMobile && <div style={{ width:1, height:36, background:theme.border }} />}
 
-              {/* Address — uses 'address' from backend */}
+              {/* Address */}
               {company.address && (
                 <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                   <div style={{ width:36, height:36, background:'rgba(255,107,0,0.08)', border:'1px solid rgba(255,107,0,0.2)', borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, flexShrink:0 }}>📍</div>
@@ -126,7 +138,7 @@ export default function LandingPage({ onNavigate }) {
 
               {!isMobile && company.phone && <div style={{ width:1, height:36, background:theme.border }} />}
 
-              {/* Phone — uses 'phone' from backend */}
+              {/* ✅ Phone — now shows because backend returns correct PHONE column */}
               {company.phone && (
                 <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                   <div style={{ width:36, height:36, background:'rgba(255,107,0,0.08)', border:'1px solid rgba(255,107,0,0.2)', borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, flexShrink:0 }}>📞</div>
@@ -141,17 +153,6 @@ export default function LandingPage({ onNavigate }) {
           </div>
         </section>
       )}
-
-      {/* Benefits */}
-      <section style={{ maxWidth:1100, margin:'0 auto', padding: isMobile?'48px 16px':'72px 32px' }}>
-        <div style={{ textAlign:'center', marginBottom:40 }}>
-          <h2 style={{ color:theme.text, fontFamily:"'Bebas Neue',sans-serif", fontSize: isMobile?37:48, letterSpacing:2, marginBottom:8 }}>WHY JOIN RETAIL LOYALTY?</h2>
-          <p style={{ color:theme.textMuted, fontSize:15 }}>Everything you need to make every rupee count</p>
-        </div>
-        <div style={{ display:'grid', gridTemplateColumns: isMobile?'1fr 1fr':'repeat(4,1fr)', gap:16 }}>
-          {benefits.map(b => <BenefitCard key={b.title} b={b} />)}
-        </div>
-      </section>
 
       {/* CTA */}
       <section style={{ maxWidth:800, margin:'0 auto', padding: isMobile?'48px 16px':'72px 32px', textAlign:'center' }}>
