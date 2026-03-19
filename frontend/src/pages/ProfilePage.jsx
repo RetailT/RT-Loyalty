@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme, useCardHover } from '../context/ThemeContext';
 import useResponsive from '../hooks/useResponsive';
 import { updateMe } from '../api';
+import { fs, fh, fm } from '../utils/fontScale';
 
 export default function ProfilePage({ onNavigate }) {
   const { user, token, logout, refreshUser } = useAuth();
@@ -46,7 +47,7 @@ export default function ProfilePage({ onNavigate }) {
   if (!user) return null;
 
   const inputStyle = (active) => ({
-    width:'100%', padding:'12px 14px', borderRadius:10, fontSize:13,
+    width:'100%', padding:'12px 14px', borderRadius:10, fontSize:15,
     background: active ? (mode==='dark'?'#1a1a1a':'#f5f5f5') : theme.bgSubtle,
     border:`1px solid ${active?'#FF6B00':theme.border}`,
     color: active ? theme.text : theme.textSub,
@@ -57,38 +58,38 @@ export default function ProfilePage({ onNavigate }) {
   return (
     <div style={{ maxWidth:900, margin:'0 auto', padding: isMobile?'24px 16px 100px':'32px 32px 60px' }}>
       <div style={{ marginBottom:24 }}>
-        <div style={{ color:'#FF6B00', fontSize:10, fontFamily:"'Space Mono',monospace", letterSpacing:3, textTransform:'uppercase', marginBottom:4 }}>◉ Account</div>
-        <h1 style={{ color:theme.text, fontFamily:"'Bebas Neue',sans-serif", fontSize: isMobile?32:40, letterSpacing:2 }}>MY PROFILE</h1>
+        <div style={{ color:'#FF6B00', fontSize:12, fontFamily:"'Space Mono',monospace", letterSpacing:3, textTransform:'uppercase', marginBottom:4 }}>◉ Account</div>
+        <h1 style={{ color:theme.text, fontFamily:"'Bebas Neue',sans-serif", fontSize: isMobile?37:46, letterSpacing:2 }}>MY PROFILE</h1>
       </div>
 
       {/* Avatar card */}
       <div {...avatarCardProps} style={{ ...avatarCardProps.style, cursor:'default' }}>
-        <div style={{ width:60, height:60, borderRadius:16, flexShrink:0, background:'linear-gradient(135deg,#FF6B00,#FF8C00)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:26, fontWeight:900, color:'#fff', fontFamily:"'Bebas Neue',sans-serif", boxShadow:'0 8px 24px rgba(255,107,0,0.35)' }}>
+        <div style={{ width:60, height:60, borderRadius:16, flexShrink:0, background:'linear-gradient(135deg,#FF6B00,#FF8C00)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:30, fontWeight:900, color:'#fff', fontFamily:"'Bebas Neue',sans-serif", boxShadow:'0 8px 24px rgba(255,107,0,0.35)' }}>
           {user.name?.charAt(0)||'U'}
         </div>
         <div style={{ flex:1, minWidth:0 }}>
-          <div style={{ color:theme.text, fontFamily:"'Bebas Neue',sans-serif", fontSize:20, letterSpacing:1, marginBottom:2 }}>{user.name}</div>
-          <div style={{ color:theme.textMuted, fontSize:12, fontFamily:"'Space Mono',monospace", marginBottom:8 }}>{user.phone}</div>
+          <div style={{ color:theme.text, fontFamily:"'Bebas Neue',sans-serif", fontSize:23, letterSpacing:1, marginBottom:2 }}>{user.name}</div>
+          <div style={{ color:theme.textMuted, fontSize:14, fontFamily:"'Space Mono',monospace", marginBottom:8 }}>{user.phone}</div>
           <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-            <span style={{ background:'rgba(255,107,0,0.08)', border:'1px solid rgba(255,107,0,0.25)', borderRadius:6, padding:'3px 10px', color:'#FF6B00', fontSize:9, fontFamily:"'Space Mono',monospace", letterSpacing:2, textTransform:'uppercase' }}>
+            <span style={{ background:'rgba(255,107,0,0.08)', border:'1px solid rgba(255,107,0,0.25)', borderRadius:6, padding:'3px 10px', color:'#FF6B00', fontSize:10, fontFamily:"'Space Mono',monospace", letterSpacing:2, textTransform:'uppercase' }}>
               🏪 {user.loyaltyType || 'Member'}
             </span>
-            <span style={{ background:theme.successBg, border:`1px solid ${theme.successBorder}`, borderRadius:6, padding:'3px 10px', color:theme.successText, fontSize:9, fontFamily:"'Space Mono',monospace", letterSpacing:2, textTransform:'uppercase' }}>
+            <span style={{ background:theme.successBg, border:`1px solid ${theme.successBorder}`, borderRadius:6, padding:'3px 10px', color:theme.successText, fontSize:10, fontFamily:"'Space Mono',monospace", letterSpacing:2, textTransform:'uppercase' }}>
               ● Active
             </span>
           </div>
         </div>
       </div>
 
-      {saved && <div style={{ background:theme.successBg, border:`1px solid ${theme.successBorder}`, borderRadius:10, padding:'12px 16px', color:theme.successText, fontSize:12, fontFamily:"'Space Mono',monospace", marginBottom:16 }}>✓ Profile updated successfully</div>}
-      {error && <div style={{ background:theme.errorBg,   border:`1px solid ${theme.errorBorder}`,   borderRadius:10, padding:'12px 16px', color:theme.errorText,   fontSize:12, fontFamily:"'Space Mono',monospace", marginBottom:16 }}>⚠ {error}</div>}
+      {saved && <div style={{ background:theme.successBg, border:`1px solid ${theme.successBorder}`, borderRadius:10, padding:'12px 16px', color:theme.successText, fontSize:14, fontFamily:"'Space Mono',monospace", marginBottom:16 }}>✓ Profile updated successfully</div>}
+      {error && <div style={{ background:theme.errorBg,   border:`1px solid ${theme.errorBorder}`,   borderRadius:10, padding:'12px 16px', color:theme.errorText,   fontSize:14, fontFamily:"'Space Mono',monospace", marginBottom:16 }}>⚠ {error}</div>}
 
       {/* Editable fields */}
       <div {...infoCardProps} style={{ ...infoCardProps.style, cursor:'default' }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
             <span style={{ color:'#FF6B00' }}>◈</span>
-            <span style={{ color:theme.text, fontWeight:700, fontSize:13 }}>Personal Information</span>
+            <span style={{ color:theme.text, fontWeight:700, fontSize:15 }}>Personal Information</span>
           </div>
           <button 
             onClick={() => editing ? handleSave() : setEditing(true)} 
@@ -127,13 +128,13 @@ export default function ProfilePage({ onNavigate }) {
             { label:'Date of Birth', field:'date_of_birth', type:'date'  },
           ].map(({ label, field, type }) => (
             <div key={field}>
-              <label style={{ display:'block', color:theme.textMuted, fontSize:10, letterSpacing:2, textTransform:'uppercase', fontFamily:"'Space Mono',monospace", marginBottom:6 }}>{label}</label>
+              <label style={{ display:'block', color:theme.textMuted, fontSize:12, letterSpacing:2, textTransform:'uppercase', fontFamily:"'Space Mono',monospace", marginBottom:6 }}>{label}</label>
               <input type={type} value={form[field]} onChange={e => setForm({ ...form, [field]:e.target.value })} disabled={!editing} style={inputStyle(editing)} />
             </div>
           ))}
         </div>
         {editing && (
-          <button onClick={() => { setEditing(false); setError(''); }} style={{ marginTop:12, background:'none', border:'none', color:theme.textMuted, fontSize:12, cursor:'pointer', fontFamily:"'Space Mono',monospace" }}>
+          <button onClick={() => { setEditing(false); setError(''); }} style={{ marginTop:12, background:'none', border:'none', color:theme.textMuted, fontSize:14, cursor:'pointer', fontFamily:"'Space Mono',monospace" }}>
             ← Cancel
           </button>
         )}
@@ -143,7 +144,7 @@ export default function ProfilePage({ onNavigate }) {
       <div {...summaryCardProps} style={{ ...summaryCardProps.style, cursor:'default' }}>
         <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:16 }}>
           <span style={{ color:'#FF6B00' }}>◫</span>
-          <span style={{ color:theme.text, fontWeight:700, fontSize:13 }}>Account Summary</span>
+          <span style={{ color:theme.text, fontWeight:700, fontSize:15 }}>Account Summary</span>
         </div>
         {[
           ['Card / Serial No.',   user.serialNo       || '—'],
@@ -155,14 +156,14 @@ export default function ProfilePage({ onNavigate }) {
           ['Redeemed Points',     `${(user.redeemedPoints||0).toLocaleString()} pts`],
         ].map(([lbl, val]) => (
           <div key={lbl} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 0', borderBottom:`1px solid ${theme.border}` }}>
-            <span style={{ color:theme.textMuted, fontSize:11, fontFamily:"'Space Mono',monospace" }}>{lbl}</span>
-            <span style={{ color:theme.textSub, fontSize:12, fontWeight:600, textAlign:'right', maxWidth:'55%' }}>{val}</span>
+            <span style={{ color:theme.textMuted, fontSize:13, fontFamily:"'Space Mono',monospace" }}>{lbl}</span>
+            <span style={{ color:theme.textSub, fontSize:14, fontWeight:600, textAlign:'right', maxWidth:'55%' }}>{val}</span>
           </div>
         ))}
       </div>
 
       {/* Logout */}
-      <button onClick={handleLogout} style={{ width:'100%', padding:'14px', background:theme.errorBg, border:`1px solid ${theme.errorBorder}`, borderRadius:12, color:theme.errorText, fontFamily:"'Space Mono',monospace", fontSize:11, letterSpacing:2, textTransform:'uppercase', cursor:'pointer', transition:'all 0.2s' }}
+      <button onClick={handleLogout} style={{ width:'100%', padding:'14px', background:theme.errorBg, border:`1px solid ${theme.errorBorder}`, borderRadius:12, color:theme.errorText, fontFamily:"'Space Mono',monospace", fontSize:13, letterSpacing:2, textTransform:'uppercase', cursor:'pointer', transition:'all 0.2s' }}
         onMouseEnter={e => e.currentTarget.style.background='rgba(248,113,113,0.15)'}
         onMouseLeave={e => e.currentTarget.style.background=theme.errorBg}>
         ⏻ Sign Out

@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import useResponsive from '../hooks/useResponsive';
+import { fs, fh, fm } from '../utils/fontScale';
 
 function QRDisplay({ value, size = 220 }) {
   const canvasRef = useRef(null);
@@ -25,7 +26,7 @@ function QRDisplay({ value, size = 220 }) {
   }, [value, size]);
 
   if (error) return (
-    <div style={{ width:size, height:size, display:'flex', alignItems:'center', justifyContent:'center', background:'#f5f5f5', borderRadius:16, color:'#999', fontSize:12, textAlign:'center', padding:16 }}>
+    <div style={{ width:size, height:size, display:'flex', alignItems:'center', justifyContent:'center', background:'#f5f5f5', borderRadius:16, color:'#999', fontSize:14, textAlign:'center', padding:16 }}>
       QR unavailable
     </div>
   );
@@ -54,8 +55,8 @@ export default function QRPage() {
 
       {/* Header */}
       <div style={{ marginBottom:32, textAlign:'center' }}>
-        <div style={{ color:theme.textMuted, fontSize:12, fontFamily:"'Space Mono',monospace", marginBottom:4 }}>Loyalty Card</div>
-        <h1 style={{ color:theme.text, fontFamily:"'Bebas Neue',sans-serif", fontSize:36, letterSpacing:2, lineHeight:1 }}>
+        <div style={{ color:theme.textMuted, fontSize:14, fontFamily:"'Space Mono',monospace", marginBottom:4 }}>Loyalty Card</div>
+        <h1 style={{ color:theme.text, fontFamily:"'Bebas Neue',sans-serif", fontSize:41, letterSpacing:2, lineHeight:1 }}>
           MY QR CODE
         </h1>
       </div>
@@ -72,7 +73,7 @@ export default function QRPage() {
         {/* Shop badge */}
         <div style={{ display:'inline-flex', alignItems:'center', gap:6, background:'rgba(255,107,0,0.08)', border:'1px solid rgba(255,107,0,0.2)', padding:'6px 16px', borderRadius:40, marginBottom:24 }}>
           <span>🏪</span>
-          <span style={{ color:'#FF6B00', fontSize:11, fontFamily:"'Space Mono',monospace", letterSpacing:1, textTransform:'uppercase' }}>{user.companyName}</span>
+          <span style={{ color:'#FF6B00', fontSize:13, fontFamily:"'Space Mono',monospace", letterSpacing:1, textTransform:'uppercase' }}>{user.companyName}</span>
         </div>
 
         {/* QR */}
@@ -83,18 +84,18 @@ export default function QRPage() {
         </div>
 
         {/* Name */}
-        <div style={{ color:theme.text, fontFamily:"'Bebas Neue',sans-serif", fontSize:28, letterSpacing:2, marginBottom:4 }}>
+        <div style={{ color:theme.text, fontFamily:"'Bebas Neue',sans-serif", fontSize:32, letterSpacing:2, marginBottom:4 }}>
           {user.name}
         </div>
 
         {/* Serial No */}
-        <div style={{ color:theme.textMuted, fontSize:12, fontFamily:"'Space Mono',monospace", letterSpacing:2, marginBottom:16 }}>
+        <div style={{ color:theme.textMuted, fontSize:14, fontFamily:"'Space Mono',monospace", letterSpacing:2, marginBottom:16 }}>
           {user.serialNo}
         </div>
 
         {/* Loyalty type badge */}
         <div style={{ display:'inline-flex', alignItems:'center', gap:6, background:'linear-gradient(135deg,rgba(255,107,0,0.12),rgba(255,140,0,0.06))', border:'1px solid rgba(255,107,0,0.25)', padding:'8px 20px', borderRadius:40 }}>
-          <span style={{ color:'#FF6B00', fontSize:12, fontFamily:"'Space Mono',monospace", letterSpacing:1, textTransform:'uppercase' }}>
+          <span style={{ color:'#FF6B00', fontSize:14, fontFamily:"'Space Mono',monospace", letterSpacing:1, textTransform:'uppercase' }}>
             {user.loyaltyType || 'Member'}
           </span>
         </div>
@@ -105,23 +106,23 @@ export default function QRPage() {
         {/* Points summary */}
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
           <div style={{ background: mode==='dark'?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.03)', borderRadius:12, padding:'14px 12px' }}>
-            <div style={{ color:theme.textMuted, fontSize:10, fontFamily:"'Space Mono',monospace", letterSpacing:1, textTransform:'uppercase', marginBottom:6 }}>Available</div>
-            <div style={{ color:'#FF6B00', fontFamily:"'Bebas Neue',sans-serif", fontSize:28, letterSpacing:1 }}>
+            <div style={{ color:theme.textMuted, fontSize:12, fontFamily:"'Space Mono',monospace", letterSpacing:1, textTransform:'uppercase', marginBottom:6 }}>Available</div>
+            <div style={{ color:'#FF6B00', fontFamily:"'Bebas Neue',sans-serif", fontSize:32, letterSpacing:1 }}>
               {(user.availablePoints || 0).toLocaleString()}
             </div>
-            <div style={{ color:theme.textFaint, fontSize:10 }}>points</div>
+            <div style={{ color:theme.textFaint, fontSize:12 }}>points</div>
           </div>
           <div style={{ background: mode==='dark'?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.03)', borderRadius:12, padding:'14px 12px' }}>
-            <div style={{ color:theme.textMuted, fontSize:10, fontFamily:"'Space Mono',monospace", letterSpacing:1, textTransform:'uppercase', marginBottom:6 }}>Lifetime</div>
-            <div style={{ color:theme.text, fontFamily:"'Bebas Neue',sans-serif", fontSize:28, letterSpacing:1 }}>
+            <div style={{ color:theme.textMuted, fontSize:12, fontFamily:"'Space Mono',monospace", letterSpacing:1, textTransform:'uppercase', marginBottom:6 }}>Lifetime</div>
+            <div style={{ color:theme.text, fontFamily:"'Bebas Neue',sans-serif", fontSize:32, letterSpacing:1 }}>
               {(user.totalPoints || 0).toLocaleString()}
             </div>
-            <div style={{ color:theme.textFaint, fontSize:10 }}>points</div>
+            <div style={{ color:theme.textFaint, fontSize:12 }}>points</div>
           </div>
         </div>
 
         {/* Scan hint */}
-        <div style={{ marginTop:20, color:theme.textFaint, fontSize:11, fontFamily:"'Space Mono',monospace", lineHeight:1.6 }}>
+        <div style={{ marginTop:20, color:theme.textFaint, fontSize:13, fontFamily:"'Space Mono',monospace", lineHeight:1.6 }}>
           Show this QR code at the counter to earn points
         </div>
       </div>

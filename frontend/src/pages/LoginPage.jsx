@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme, useCardHover } from '../context/ThemeContext';
 import useResponsive from '../hooks/useResponsive';
 import { sendOTP, verifyOTP } from '../api';
+import { fs, fh, fm } from '../utils/fontScale';
 
 export default function LoginPage({ onNavigate }) {
   const { login }        = useAuth();
@@ -101,7 +102,7 @@ export default function LoginPage({ onNavigate }) {
           {/* Logo */}
           <div style={{ textAlign: 'center', marginBottom: 28 }}>
             <div style={{
-              width: 56, height: 56, margin: '0 auto 14px',
+              width: 56, height: 50, margin: '0 auto 14px',
               background: 'linear-gradient(135deg,#FF6B00,#FF8C00)',
               borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 24, fontWeight: 900, color: '#fff',
@@ -262,11 +263,11 @@ export default function LoginPage({ onNavigate }) {
 
         </div>
 
-        <p style={{ textAlign: 'center', color: theme.textFaint, fontSize: 11, marginTop: 16, lineHeight: 1.6 }}>
-          By continuing, you agree to RetailCo's{' '}
+        {/* <p style={{ textAlign: 'center', color: theme.textFaint, fontSize: 11, marginTop: 16, lineHeight: 1.6 }}>
+          By continuing, you agree to Retail's{' '}
           <span style={{ color: '#FF6B00', cursor: 'pointer' }}>Terms of Service</span> and{' '}
           <span style={{ color: '#FF6B00', cursor: 'pointer' }}>Privacy Policy</span>
-        </p>
+        </p> */}
       </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>

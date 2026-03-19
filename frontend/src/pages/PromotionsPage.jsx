@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import useResponsive from '../hooks/useResponsive';
 import { getPromotions } from '../api';
+import { fs, fh, fm } from '../utils/fontScale';
 
 function PromotionCard({ promo, theme, mode }) {
   const hasDiscount = promo.discountPrc > 0 || promo.discountAmt > 0;
@@ -38,25 +39,25 @@ function PromotionCard({ promo, theme, mode }) {
         {/* Discount badge */}
         {discountLabel && (
           <div style={{ display:'inline-flex', alignItems:'center', background:'rgba(255,107,0,0.1)', border:'1px solid rgba(255,107,0,0.25)', borderRadius:20, padding:'3px 10px', marginBottom:10 }}>
-            <span style={{ color:'#FF6B00', fontSize:10, fontFamily:"'Space Mono',monospace", fontWeight:700, letterSpacing:1 }}> {discountLabel}</span>
+            <span style={{ color:'#FF6B00', fontSize:12, fontFamily:"'Space Mono',monospace", fontWeight:700, letterSpacing:1 }}> {discountLabel}</span>
           </div>
         )}
 
         {/* Product name */}
-        <div style={{ color:theme.text, fontWeight:700, fontSize:13, marginBottom:4, lineHeight:1.4 }}>
+        <div style={{ color:theme.text, fontWeight:700, fontSize:15, marginBottom:4, lineHeight:1.4 }}>
           {promo.productName || promo.productCode}
         </div>
-        <div style={{ color:theme.textFaint, fontSize:10, fontFamily:"'Space Mono',monospace", marginBottom:12 }}>
+        <div style={{ color:theme.textFaint, fontSize:12, fontFamily:"'Space Mono',monospace", marginBottom:12 }}>
           {promo.productCode}
         </div>
 
         {/* Price */}
         <div style={{ display:'flex', alignItems:'baseline', gap:8 }}>
-          <div style={{ color:'#FF6B00', fontFamily:"'Bebas Neue',sans-serif", fontSize:24, letterSpacing:1 }}>
+          <div style={{ color:'#FF6B00', fontFamily:"'Bebas Neue',sans-serif", fontSize:28, letterSpacing:1 }}>
             Rs. {discountedPrice.toFixed(2)}
           </div>
           {hasDiscount && (
-            <div style={{ color:theme.textFaint, fontSize:12, textDecoration:'line-through' }}>
+            <div style={{ color:theme.textFaint, fontSize:14, textDecoration:'line-through' }}>
               Rs. {originalPrice.toFixed(2)}
             </div>
           )}
@@ -65,7 +66,7 @@ function PromotionCard({ promo, theme, mode }) {
         {/* Date range */}
         {(promo.dateFrom || promo.dateTo) && (
           <div style={{ marginTop:10, padding:'6px 10px', background: mode==='dark'?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.03)', borderRadius:8 }}>
-            <div style={{ color:theme.textFaint, fontSize:10, fontFamily:"'Space Mono',monospace" }}>
+            <div style={{ color:theme.textFaint, fontSize:12, fontFamily:"'Space Mono',monospace" }}>
               {promo.dateFrom && `From ${promo.dateFrom.slice(0,10)}`}
               {promo.dateFrom && promo.dateTo && ' → '}
               {promo.dateTo && promo.dateTo.slice(0,10)}
@@ -104,8 +105,8 @@ export default function PromotionsPage() {
 
       {/* Header */}
       <div style={{ marginBottom:24 }}>
-        <div style={{ color:theme.textMuted, fontSize:12, fontFamily:"'Space Mono',monospace", marginBottom:4 }}>Current Deals</div>
-        <h1 style={{ color:theme.text, fontFamily:"'Bebas Neue',sans-serif", fontSize: isMobile?32:40, letterSpacing:2, lineHeight:1, marginBottom:16 }}>
+        <div style={{ color:theme.textMuted, fontSize:14, fontFamily:"'Space Mono',monospace", marginBottom:4 }}>Current Deals</div>
+        <h1 style={{ color:theme.text, fontFamily:"'Bebas Neue',sans-serif", fontSize: isMobile?37:46, letterSpacing:2, lineHeight:1, marginBottom:16 }}>
           PROMOTIONS
         </h1>
 
@@ -119,7 +120,7 @@ export default function PromotionsPage() {
             width:'100%', padding:'10px 14px', boxSizing:'border-box',
             background: mode==='dark'?'#1a1a1a':'#f5f5f5',
             border:`1px solid ${theme.border}`, borderRadius:10,
-            color:theme.text, fontSize:13, outline:'none',
+            color:theme.text, fontSize:15, outline:'none',
             fontFamily:'inherit',
           }}
           onFocus={e => e.target.style.borderColor='#FF6B00'}
@@ -129,18 +130,18 @@ export default function PromotionsPage() {
 
       {/* Content */}
       {loading ? (
-        <div style={{ padding:60, textAlign:'center', color:theme.textFaint, fontFamily:"'Space Mono',monospace", fontSize:12 }}>
+        <div style={{ padding:60, textAlign:'center', color:theme.textFaint, fontFamily:"'Space Mono',monospace", fontSize:14 }}>
           Loading promotions...
         </div>
       ) : error ? (
-        <div style={{ padding:40, textAlign:'center', color:theme.errorText, fontSize:13 }}>⚠ {error}</div>
+        <div style={{ padding:40, textAlign:'center', color:theme.errorText, fontSize:15 }}>⚠ {error}</div>
       ) : filtered.length === 0 ? (
-        <div style={{ padding:60, textAlign:'center', color:theme.textFaint, fontFamily:"'Space Mono',monospace", fontSize:12 }}>
+        <div style={{ padding:60, textAlign:'center', color:theme.textFaint, fontFamily:"'Space Mono',monospace", fontSize:14 }}>
           {search ? 'No promotions found.' : 'No active promotions at this time.'}
         </div>
       ) : (
         <>
-          <div style={{ color:theme.textFaint, fontSize:11, fontFamily:"'Space Mono',monospace", marginBottom:16 }}>
+          <div style={{ color:theme.textFaint, fontSize:13, fontFamily:"'Space Mono',monospace", marginBottom:16 }}>
             {filtered.length} promotion{filtered.length !== 1 ? 's' : ''} available
           </div>
           <div style={{ display:'grid', gridTemplateColumns:`repeat(${isMobile?2:3},1fr)`, gap:14 }}>
