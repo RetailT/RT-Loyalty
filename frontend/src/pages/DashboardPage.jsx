@@ -53,7 +53,7 @@ function getGreeting() {
   const hour = new Date().getHours();
   if (hour >= 5  && hour < 12) return { text: 'Good morning,',   emoji: '☀️' };
   if (hour >= 12 && hour < 17) return { text: 'Good afternoon,', emoji: '🌤️' };
-  if (hour >= 17 && hour < 24) return { text: 'Good evening,',   emoji: '🌆' };
+  if (hour >= 17 && hour < 21) return { text: 'Good evening,',   emoji: '🌆' };
   return                              { text: 'Working late?',    emoji: '🌙' };
 }
 
@@ -133,9 +133,10 @@ export default function DashboardPage({ onNavigate }) {
 
       {/* Stats */}
       <div style={{ display:'grid', gridTemplateColumns:`repeat(${statsCols},1fr)`, gap:12, marginBottom:20 }}>
-        <StatsCard title="This Month"   value={`+${thisMonthPts.toFixed(2)}`} subtitle="points earned" icon="📈" />
-        <StatsCard title="Transactions" value={earnCount}                      subtitle="earn events"   icon="🧾" />
-        {!isMobile && <StatsCard title="Shop" value={user.companyName||'—'} subtitle="your store" icon="🏪" />}
+        {/* ✅ value font large, subtitle font large */}
+        <StatsCard title="This Month"   value={`+${thisMonthPts.toFixed(2)}`} subtitle="points earned" icon="📈" valueFontSize={isMobile?28:32} subtitleFontSize={15} />
+        <StatsCard title="Transactions" value={earnCount}                      subtitle="earn events"   icon="🧾" valueFontSize={isMobile?28:32} subtitleFontSize={15} />
+        {!isMobile && <StatsCard title="Shop" value={user.companyName||'—'} subtitle="your store" icon="🏪" valueFontSize={isMobile?18:22} subtitleFontSize={15} />}
       </div>
 
       {/* Quick Links */}

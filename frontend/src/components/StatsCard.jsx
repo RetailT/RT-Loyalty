@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
 
-export default function StatsCard({ title, value, subtitle, icon, color = '#FF6B00', trend }) {
+export default function StatsCard({ title, value, subtitle, icon, color = '#FF6B00', trend, valueFontSize = 30, subtitleFontSize = 11 }) {
   const { theme }       = useTheme();
   const [hovered, setHovered] = useState(false);
 
@@ -17,8 +17,10 @@ export default function StatsCard({ title, value, subtitle, icon, color = '#FF6B
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
         <div>
           <div style={{ color:theme.textMuted, fontSize:10, letterSpacing:2, textTransform:'uppercase', fontFamily:"'Space Mono',monospace", marginBottom:8 }}>{title}</div>
-          <div style={{ color:theme.text, fontSize:30, fontWeight:900, fontFamily:"'Bebas Neue',sans-serif", letterSpacing:1, lineHeight:1 }}>{value}</div>
-          {subtitle && <div style={{ color:theme.textFaint, fontSize:11, marginTop:6 }}>{subtitle}</div>}
+          {/* ✅ valueFontSize prop use */}
+          <div style={{ color:theme.text, fontSize:valueFontSize, fontWeight:900, fontFamily:"'Bebas Neue',sans-serif", letterSpacing:1, lineHeight:1 }}>{value}</div>
+          {/* ✅ subtitleFontSize prop use */}
+          {subtitle && <div style={{ color:theme.textFaint, fontSize:subtitleFontSize, marginTop:6, fontFamily:"'Bebas Neue',sans-serif", letterSpacing:1 }}>{subtitle}</div>}
           {trend && (
             <div style={{ display:'inline-flex', alignItems:'center', gap:4, marginTop:8, background:trend.value>=0?theme.successBg:theme.errorBg, border:`1px solid ${trend.value>=0?theme.successBorder:theme.errorBorder}`, borderRadius:6, padding:'3px 8px', fontSize:11, color:trend.value>=0?theme.successText:theme.errorText, fontFamily:"'Space Mono',monospace" }}>
               {trend.value >= 0 ? '↑' : '↓'} {Math.abs(trend.value)}% {trend.label}
