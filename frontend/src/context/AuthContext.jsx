@@ -90,13 +90,13 @@ export function AuthProvider({ children }) {
       {sessionExpired && (
         <div style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.6)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
           <div style={{ background:'#fff', borderRadius:20, padding:'36px 32px', maxWidth:380, width:'100%', textAlign:'center', boxShadow:'0 24px 80px rgba(0,0,0,0.2)' }}>
-            <div style={{ width:56, height:56, background:'linear-gradient(135deg,#FF6B00,#FF8C00)', borderRadius:14, display:'flex', alignItems:'center', justifyContent:'center', fontSize:26, margin:'0 auto 16px' }}>⏱</div>
+            <div style={{ width:56, height:56, background:'linear-gradient(135deg, var(--primary), var(--primary-dark))', borderRadius:14, display:'flex', alignItems:'center', justifyContent:'center', fontSize:26, margin:'0 auto 16px' }}>⏱</div>
             <h2 style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:24, letterSpacing:2, color:'#111', marginBottom:8 }}>SESSION EXPIRED</h2>
             <p style={{ color:'#666', fontSize:13, lineHeight:1.7, marginBottom:24 }}>Please log in again to continue.</p>
             <button
               autoFocus
               onClick={() => setSessionExpired(false)}
-              style={{ width:'100%', padding:'13px', background:'linear-gradient(135deg,#FF6B00,#FF8C00)', border:'none', borderRadius:10, color:'#fff', fontFamily:"'Space Mono',monospace", fontSize:11, letterSpacing:2, textTransform:'uppercase', cursor:'pointer' }}
+              style={{ width:'100%', padding:'13px', background:'linear-gradient(135deg, var(--primary), var(--primary-dark))', border:'none', borderRadius:10, color:'#fff', fontFamily:"'Space Mono',monospace", fontSize:11, letterSpacing:2, textTransform:'uppercase', cursor:'pointer' }}
             >
               Log In Again →
             </button>
