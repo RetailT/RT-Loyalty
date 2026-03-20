@@ -5,7 +5,6 @@ const companyMiddleware = async (req, res, next) => {
     const host    = req.headers.host || '';
     const devSlug = req.query.shop   || req.headers['x-shop-slug'];
 
-    // ── Determine if dev environment ───────────────────────
     const cleanHost = host
       .replace(/^www\./, '')
       .replace(/:\d+$/, '')
@@ -19,24 +18,18 @@ const companyMiddleware = async (req, res, next) => {
       cleanHost.includes('render.com') ||
       cleanHost.includes('onrender.com');
 
-    // ── Determine slug ─────────────────────────────────────
     let finalSlug = '';
 
     if (!isDev) {
-      // Production: use full domain as slug e.g. retailtarget.lk
       finalSlug = cleanHost;
     } else if (devSlug) {
-      // Dev: explicit override via ?shop= or x-shop-slug header
       finalSlug = devSlug.trim().toLowerCase();
     }
-    // else: dev with no override → finalSlug = '' → RT master fallback
 
-    // ── Step 1: RTPOS_MAIN.tb_SERVER_DETAILS ──────────────
     const masterPool = await getMasterPool();
     let serverRow    = null;
 
     if (finalSlug) {
-      // Match 'retailtarget.lk' OR 'retailtarget' in DB
       const slugBase = finalSlug.split('.')[0];
       try {
         const r = await masterPool.request()
@@ -61,9 +54,7 @@ const companyMiddleware = async (req, res, next) => {
         console.warn('[companyMiddleware] SERVER_DETAILS query failed:', e.message);
       }
 
-      // Production: slug match නැත්නම් 404 — wrong server load කරන්නේ නෑ
       if (!serverRow && !isDev) {
-        console.warn(`[companyMiddleware] No server found for slug: ${finalSlug}`);
         return res.status(404).json({
           success: false,
           message: 'Shop not configured. Please contact support.',
@@ -71,7 +62,6 @@ const companyMiddleware = async (req, res, next) => {
       }
     }
 
-    // Dev fallback OR dev slug not matched → RT master server
     if (!serverRow) {
       const r = await masterPool.request()
         .query(`
@@ -86,18 +76,13 @@ const companyMiddleware = async (req, res, next) => {
           ORDER BY IDX DESC
         `);
       if (r.recordset.length) serverRow = r.recordset[0];
-
       if (!serverRow) {
         return res.status(404).json({ success: false, message: 'Default server not found.' });
       }
     }
 
     const { SERVERIP, PORTNO } = serverRow;
-
-    // ── Step 2: Connect to that shop's SQL Server ──────────
     const shopPool = await getShopPool(SERVERIP, PORTNO);
-
-    // ── Step 3: Get company row from shop's POSBACK_SYSTEM ─
     let companyRow = null;
 
     if (finalSlug) {
@@ -108,10 +93,13 @@ const companyMiddleware = async (req, res, next) => {
           .input('slugBase', sql.NVarChar, slugBase)
           .query(`
             SELECT TOP 1
-              LTRIM(RTRIM(COMPANY_CODE)) AS POSBACK_CODE,
-              LTRIM(RTRIM(COMPANY_NAME)) AS COMPANY_NAME,
-              LTRIM(RTRIM(ADDRESS))      AS CITY,
-              LTRIM(RTRIM(PHONE))        AS PHONE
+              LTRIM(RTRIM(COMPANY_CODE))      AS POSBACK_CODE,
+              LTRIM(RTRIM(COMPANY_NAME))      AS COMPANY_NAME,
+              LTRIM(RTRIM(ADDRESS))           AS CITY,
+              LTRIM(RTRIM(PHONE))             AS PHONE,
+              LTRIM(RTRIM(PRIMARY_COLOR))     AS PRIMARY_COLOR,
+              LTRIM(RTRIM(SECONDARY_COLOR))   AS SECONDARY_COLOR,
+              LTRIM(RTRIM(LOGO_URL))          AS LOGO_URL
             FROM dbo.tb_COMPANY
             WHERE
               LTRIM(RTRIM(DOMAIN_SLUG)) = @slug OR
@@ -123,15 +111,17 @@ const companyMiddleware = async (req, res, next) => {
       }
     }
 
-    // Fallback — first company in that shop's DB
     if (!companyRow) {
       const r = await shopPool.request()
         .query(`
           SELECT TOP 1
-            LTRIM(RTRIM(COMPANY_CODE)) AS POSBACK_CODE,
-            LTRIM(RTRIM(COMPANY_NAME)) AS COMPANY_NAME,
-            LTRIM(RTRIM(ADDRESS))      AS CITY,
-            LTRIM(RTRIM(PHONE))        AS PHONE
+            LTRIM(RTRIM(COMPANY_CODE))      AS POSBACK_CODE,
+            LTRIM(RTRIM(COMPANY_NAME))      AS COMPANY_NAME,
+            LTRIM(RTRIM(ADDRESS))           AS CITY,
+            LTRIM(RTRIM(PHONE))             AS PHONE,
+            LTRIM(RTRIM(PRIMARY_COLOR))     AS PRIMARY_COLOR,
+            LTRIM(RTRIM(SECONDARY_COLOR))   AS SECONDARY_COLOR,
+            LTRIM(RTRIM(LOGO_URL))          AS LOGO_URL
           FROM dbo.tb_COMPANY
           WHERE LTRIM(RTRIM(COMPANY_CODE)) != ''
           ORDER BY IDX ASC
@@ -143,7 +133,6 @@ const companyMiddleware = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Company not found in shop DB.' });
     }
 
-    // ── Attach context to request ──────────────────────────
     req.company  = companyRow;
     req.shopPool = shopPool;
     req.shopSlug = finalSlug;

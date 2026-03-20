@@ -10,15 +10,19 @@ const customer               = require('../controllers/portalCustomerController'
 // GET /api/portal/company
 // GET /api/portal/company?shop=retailtarget
 // companyMiddleware resolves the company, handler just returns req.company
+// ── Company info (public) ──────────────────────────────────────────────────────
 router.get('/company', companyMiddleware, (req, res) => {
   const c = req.company;
   res.json({
     success: true,
     company: {
-      code:    c.POSBACK_CODE,
-      name:    c.COMPANY_NAME,
-      address: c.CITY   || null,
-      phone:   c.PHONE  || null,   // include if your DB has it, else null
+      code:         c.POSBACK_CODE,
+      name:         c.COMPANY_NAME,
+      address:      c.CITY          || null,
+      phone:        c.PHONE         || null,
+      primaryColor: c.PRIMARY_COLOR  || null,
+      secondaryColor: c.SECONDARY_COLOR || null,
+      logoUrl:      c.LOGO_URL       || null,
     },
   });
 });
