@@ -75,12 +75,12 @@ async function logAction(posPool, {
       .query(`
         INSERT INTO dbo.tb_LOYALTY_USERLOG
           (USERNAME, CUSTOMER_NAME, COMPANY_CODE, COMPANY_NAME,
-           ACTION, OTP_CODE, LOGIN_TIME, LOGOUT_TIME)
+          ACTION, OTP_CODE, LOGIN_TIME, LOGOUT_TIME)
         VALUES
           (@username, @custName, @compCode, @compName,
-           @action,   @otp,
-           ${setLogin  ? 'GETDATE()' : 'NULL'},
-           ${setLogout ? 'GETDATE()' : 'NULL'})
+          @action,   @otp,
+          ${setLogin  ? 'GETDATE()' : 'NULL'},
+          ${setLogout ? 'GETDATE()' : 'NULL'})
       `);
   } catch (err) {
     console.error('[logAction]', err.message);
