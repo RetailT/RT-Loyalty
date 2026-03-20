@@ -2,26 +2,26 @@ import React, { createContext, useContext, useState } from 'react';
 
 const darkTheme = {
   bg:'#0a0a0a', bgCard:'#1e1e1e', bgSubtle:'#252525', bgAccent:'#2a2a2a',
-  navBg:'rgba(10,10,10,0.95)', navBorder:'#2a2a2a', navShadow:'0 1px 0 rgba(255,107,0,0.12)',
-  modalBg:'rgba(0,0,0,0.75)', pointsBg:'rgba(255,107,0,0.10)', pointsBorder:'rgba(255,107,0,0.3)',
+  navBg:'rgba(10,10,10,0.95)', navBorder:'#2a2a2a', navShadow:'0 1px 0 color-mix(in srgb, var(--primary) 12%, transparent)',
+  modalBg:'rgba(0,0,0,0.75)', pointsBg:'color-mix(in srgb, var(--primary) 10%, transparent)', pointsBorder:'color-mix(in srgb, var(--primary) 30%, transparent)',
   text:'#ffffff', textSub:'#e8e8e8', textMuted:'#c0c0c0', textFaint:'#888888',
-  border:'#3a3a3a', borderHover:'#FF6B00',
+  border:'#3a3a3a', borderHover:'var(--primary)',
   successText:'#34d399', successBg:'rgba(52,211,153,0.10)', successBorder:'rgba(52,211,153,0.3)',
   errorText:'#f87171', errorBg:'rgba(248,113,113,0.10)', errorBorder:'rgba(248,113,113,0.3)',
-  redText:'#f87171', shadow:'0 4px 24px rgba(0,0,0,0.6)', shadowHover:'0 8px 40px rgba(255,107,0,0.20)',
+  redText:'#f87171', shadow:'0 4px 24px rgba(0,0,0,0.6)', shadowHover:'0 8px 40px color-mix(in srgb, var(--primary) 20%, transparent)',
   cardHoverBg:'#252525', cardHoverTransform:'translateY(-2px)',
 };
 
 const lightTheme = {
   bg:'#fafafa', bgCard:'#ffffff', bgSubtle:'#f5f5f5', bgAccent:'#f0f0f0',
   navBg:'rgba(255,255,255,0.95)', navBorder:'#e8e8e8', navShadow:'0 1px 0 rgba(0,0,0,0.06)',
-  modalBg:'rgba(0,0,0,0.4)', pointsBg:'rgba(255,107,0,0.06)', pointsBorder:'rgba(255,107,0,0.2)',
+  modalBg:'rgba(0,0,0,0.4)', pointsBg:'color-mix(in srgb, var(--primary) 6%, transparent)', pointsBorder:'color-mix(in srgb, var(--primary) 20%, transparent)',
   text:'#111111', textSub:'#333333', textMuted:'#666666', textFaint:'#999999',
-  border:'#e5e5e5', borderHover:'#FF6B00',
+  border:'#e5e5e5', borderHover:'var(--primary)',
   successText:'#059669', successBg:'rgba(5,150,105,0.08)', successBorder:'rgba(5,150,105,0.25)',
   errorText:'#dc2626', errorBg:'rgba(220,38,38,0.08)', errorBorder:'rgba(220,38,38,0.25)',
-  redText:'#dc2626', shadow:'0 4px 24px rgba(0,0,0,0.08)', shadowHover:'0 8px 40px rgba(255,107,0,0.12)',
-  cardHoverBg:'#fff9f5', cardHoverTransform:'translateY(-2px)',
+  redText:'#dc2626', shadow:'0 4px 24px rgba(0,0,0,0.08)', shadowHover:'0 8px 40px color-mix(in srgb, var(--primary) 12%, transparent)',
+  cardHoverBg:'color-mix(in srgb, var(--primary) 4%, white)', cardHoverTransform:'translateY(-2px)',
 };
 
 const ThemeContext = createContext();

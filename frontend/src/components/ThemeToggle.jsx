@@ -23,7 +23,7 @@ export default function ThemeToggle({ compact = false }) {
       background: isDark ? '#1a1a1a' : '#f0f0f0', border:`1px solid ${theme.border}`,
       borderRadius:40, padding:'5px 14px 5px 6px', cursor:'pointer', transition:'all 0.3s',
     }}>
-      <div style={{ width:36, height:20, background: isDark?'#FF6B00':'#d0d0d0', borderRadius:20, position:'relative', transition:'background 0.3s', flexShrink:0 }}>
+      <div style={{ width:36, height:20, background: isDark?'var(--primary)':'#d0d0d0', borderRadius:20, position:'relative', transition:'background 0.3s', flexShrink:0 }}>
         <div style={{ position:'absolute', top:3, left: isDark?19:3, width:14, height:14, background:'#fff', borderRadius:'50%', transition:'left 0.3s', boxShadow:'0 1px 4px rgba(0,0,0,0.2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:8 }}>
           {isDark ? '🌙' : '☀️'}
         </div>

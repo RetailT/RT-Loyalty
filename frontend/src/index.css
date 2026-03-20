@@ -4,6 +4,13 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap');
 
+/* ── Company theme defaults (Override through DB) ── */
+:root {
+  --primary:      #e53e3e;
+  --primary-dark: #b91c1c;
+  --secondary:    #2d3748;
+}
+
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
 button { font-family: inherit; }
