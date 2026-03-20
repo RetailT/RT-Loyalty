@@ -54,10 +54,6 @@ function shapeCustomer(row, points) {
   };
 }
 
-// ── Log to tb_LOYALTY_USERLOG ─────────────────────────────
-// setLogin  = true  → LOGIN_TIME  = GETDATE()  (SQL server local time, no UTC offset issue)
-// setLogout = true  → LOGOUT_TIME = GETDATE()
-// otpCode passed directly for OTP_REQUEST and LOGIN actions
 async function logAction(posPool, {
   username,
   customerName,
@@ -100,8 +96,9 @@ exports.sendOtp = async (req, res) => {
     if (!phone) return res.status(400).json({ success: false, message: 'Input required.' });
 
     const input   = phone.trim();
-    const posPool = req.shopPool; // await getPosbackPool(); // use pool from companyMiddleware
+    const posPool = req.shopPool;
 
+    // ── Step 1: Find customer ──────────────────────────────
     const found = await posPool.request()
       .input('input', sql.NVarChar, input)
       .input('code',  sql.Char,     POSBACK_CODE)
@@ -141,7 +138,9 @@ exports.sendOtp = async (req, res) => {
       });
     }
 
+    // ── Step 2: Rate limit check ───────────────────────────
     const loyPool = await getLoyaltyPool();
+
     const rateCheck = await loyPool.request()
       .input('phone', sql.NVarChar, mobileNo)
       .input('code',  sql.NVarChar, POSBACK_CODE)
@@ -162,8 +161,15 @@ exports.sendOtp = async (req, res) => {
       });
     }
 
+    // ── Step 3: Generate OTP ───────────────────────────────
     const otp     = String(Math.floor(100000 + Math.random() * 900000));
     const expires = new Date(Date.now() + OTP_TTL_MIN * 60000);
+
+    // ── Step 4: DELETE + INSERT (MERGE first time miss fix) ─
+    await loyPool.request()
+      .input('phone', sql.NVarChar, mobileNo)
+      .input('code',  sql.NVarChar, POSBACK_CODE)
+      .query(`DELETE FROM dbo.tb_OTP_SESSIONS WHERE PHONE = @phone AND COMPANY_CODE = @code`);
 
     await loyPool.request()
       .input('phone',   sql.NVarChar, mobileNo)
@@ -172,31 +178,29 @@ exports.sendOtp = async (req, res) => {
       .input('otp',     sql.NVarChar, otp)
       .input('expires', sql.DateTime, expires)
       .query(`
-        MERGE dbo.tb_OTP_SESSIONS AS T
-        USING (SELECT @phone AS PHONE, @code AS COMPANY_CODE) AS S
-          ON T.PHONE = S.PHONE AND T.COMPANY_CODE = S.COMPANY_CODE
-        WHEN MATCHED THEN
-          UPDATE SET OTP = @otp, EXPIRES_AT = @expires, CREATED_AT = GETDATE()
-        WHEN NOT MATCHED THEN
-          INSERT (EMAIL, PHONE, COMPANY_CODE, OTP, EXPIRES_AT, CREATED_AT)
-          VALUES (@email, @phone, @code, @otp, @expires, GETDATE());
+        INSERT INTO dbo.tb_OTP_SESSIONS (EMAIL, PHONE, COMPANY_CODE, OTP, EXPIRES_AT, CREATED_AT)
+        VALUES (@email, @phone, @code, @otp, @expires, GETDATE())
       `);
 
-    // ✅ OTP_REQUEST — OTP code saved, LOGIN_TIME = SQL GETDATE()
+    // ── Step 5: Log action ─────────────────────────────────
     logAction(posPool, {
       username:     mobileNo,
       customerName: custName,
       companyCode:  POSBACK_CODE,
       companyName:  shop,
       action:       'OTP_REQUEST',
-      otpCode:      otp,      // ← OTP code saved
-      setLogin:     true,     // ← LOGIN_TIME = GETDATE()
+      otpCode:      otp,
+      setLogin:     true,
       setLogout:    false,
     });
 
-    sendOtpSMS(mobileNo, otp, shop).catch(err =>
-      console.error('[sendOtp] SMS error:', err.message)
-    );
+    // ── Step 6: Send SMS — awaited (Vercel fix) ────────────
+    try {
+      await sendOtpSMS(mobileNo, otp, shop);
+    } catch (smsErr) {
+      console.error('[sendOtp] SMS error:', smsErr.message);
+      // SMS fail වුණත් OTP response return කරනවා
+    }
 
     const hasEmail    = !!(custRow.EMAIL || '').trim();
     const maskedPhone = mobileNo.slice(0, 3) + '****' + mobileNo.slice(-3);
@@ -208,6 +212,7 @@ exports.sendOtp = async (req, res) => {
       maskedPhone,
       ...(IS_DEV ? { dev_otp: otp } : {}),
     });
+
   } catch (err) {
     console.error('[sendOtp]', err.message);
     res.status(500).json({ success: false, message: 'Server error.', error: err.message });
@@ -224,7 +229,7 @@ exports.verifyOtp = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Input and OTP required.' });
 
     const input   = phone.trim();
-    const posPool = req.shopPool; // await getPosbackPool(); // use pool from companyMiddleware
+    const posPool = req.shopPool;
 
     const custSearch = await posPool.request()
       .input('input', sql.NVarChar, input)
@@ -306,20 +311,20 @@ exports.verifyOtp = async (req, res) => {
       { expiresIn: JWT_EXPIRES }
     );
 
-    // ✅ LOGIN — OTP code saved, LOGIN_TIME = SQL GETDATE()
     logAction(posPool, {
       username:     mobileNo,
       customerName: customer.name,
       companyCode:  POSBACK_CODE,
       companyName:  customer.companyName,
       action:       'LOGIN',
-      otpCode:      otp,      // ← verified OTP code saved
-      setLogin:     true,     // ← LOGIN_TIME = GETDATE()
+      otpCode:      otp,
+      setLogin:     true,
       setLogout:    false,
     });
 
     console.log(`✅ Login — ${customer.name} (${customer.phone}) @ ${customer.companyName} — ${nowStr()}`);
     res.json({ success: true, token, customer });
+
   } catch (err) {
     console.error('[verifyOtp]', err.message);
     res.status(500).json({ success: false, message: 'Server error.', error: err.message });
@@ -335,7 +340,7 @@ exports.qrLogin = async (req, res) => {
     if (!qrCode)
       return res.status(400).json({ success: false, message: 'QR code required.' });
 
-    const posPool = req.shopPool; // await getPosbackPool(); // use pool from companyMiddleware
+    const posPool = req.shopPool;
     const result  = await posPool.request()
       .input('sno',  sql.NVarChar, qrCode.trim())
       .input('code', sql.Char,     POSBACK_CODE)
@@ -368,20 +373,20 @@ exports.qrLogin = async (req, res) => {
       { expiresIn: JWT_EXPIRES }
     );
 
-    // ✅ QR_LOGIN — no OTP, LOGIN_TIME = SQL GETDATE()
     logAction(posPool, {
       username:     customer.phone,
       customerName: customer.name,
       companyCode:  POSBACK_CODE,
       companyName:  customer.companyName,
       action:       'QR_LOGIN',
-      otpCode:      '',       // no OTP for QR login
-      setLogin:     true,     // ← LOGIN_TIME = GETDATE()
+      otpCode:      '',
+      setLogin:     true,
       setLogout:    false,
     });
 
     console.log(`✅ QR Login — ${customer.name} (${customer.phone}) @ ${customer.companyName} — ${nowStr()}`);
     res.json({ success: true, token, customer });
+
   } catch (err) {
     console.error('[qrLogin]', err.message);
     res.status(500).json({ success: false, message: 'Server error.', error: err.message });
@@ -395,22 +400,21 @@ exports.logoutPortal = async (req, res) => {
     console.log(`🔴 Logout — ${name || '?'} (${phone || '?'}) — ${reason || 'manual'} — ${nowStr()}`);
 
     if (phone) {
-      const posPool = req.shopPool; // await getPosbackPool(); // use pool from companyMiddleware
-
-      // ✅ LOGOUT — no OTP, LOGOUT_TIME = SQL GETDATE() only
+      const posPool = req.shopPool;
       logAction(posPool, {
         username:     phone,
         customerName: name,
         companyCode,
         companyName,
         action:       'LOGOUT',
-        otpCode:      '',       // no OTP on logout
-        setLogin:     false,    // ← LOGIN_TIME = NULL
-        setLogout:    true,     // ← LOGOUT_TIME = GETDATE()
+        otpCode:      '',
+        setLogin:     false,
+        setLogout:    true,
       });
     }
 
     res.json({ success: true });
+
   } catch (err) {
     console.error('[logoutPortal]', err.message);
     res.json({ success: true });

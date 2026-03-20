@@ -175,7 +175,7 @@ export default function DashboardPage({ onNavigate }) {
                 <div style={{ color:theme.textSub, fontSize:14, fontWeight:600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{tx.COMPANY_NAME||tx.INVOICENO||'Transaction'}</div>
                 <div style={{ color:theme.textFaint, fontSize:12, fontFamily:"'Space Mono',monospace", marginTop:2 }}>{(tx.INVOICE_DATE||'').slice(0,10)}</div>
               </div>
-              <div style={{ color:txColor(type,theme), fontFamily:"'Bebas Neue',sans-serif", fontSize:21, fontWeight:900, flexShrink:0 }}>
+              <div style={{ color:txColor(type,theme), fontFamily:"'Bebas Neue',sans-serif", fontSize:21, fontWeight:500, flexShrink:0 }}>
                 {type==='en'?'+':''}{pts.toFixed(2)}
               </div>
             </div>

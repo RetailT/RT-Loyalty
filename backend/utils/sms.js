@@ -1,6 +1,7 @@
 const TEXTIT_USERNAME = process.env.TEXTIT_USERNAME;
 const TEXTIT_PASSWORD = process.env.TEXTIT_PASSWORD;
 const SENDER_ID       = process.env.TEXTIT_SENDER_ID || 'TextitDemo';
+const SMS_TIMEOUT_MS  = 8000; // 8 seconds max
 
 async function sendSMS(to, msg) {
   try {
@@ -17,8 +18,18 @@ async function sendSMS(to, msg) {
     const url = `https://textit.biz/sendmsg/?${params.toString()}`;
     console.log(`📤 TextIt calling...`);
 
-    const res  = await fetch(url);
-    const text = await res.text();
+    // ── Timeout wrapper — Vercel functions cut off after response ──
+    const controller = new AbortController();
+    const timeout    = setTimeout(() => controller.abort(), SMS_TIMEOUT_MS);
+
+    let res, text;
+    try {
+      res  = await fetch(url, { signal: controller.signal });
+      text = await res.text();
+    } finally {
+      clearTimeout(timeout);
+    }
+
     console.log(`📨 TextIt response: ${text}`);
 
     if (text.startsWith('OK')) {
@@ -29,6 +40,10 @@ async function sendSMS(to, msg) {
       return { success: false, response: text };
     }
   } catch (err) {
+    if (err.name === 'AbortError') {
+      console.error(`❌ SMS timeout after ${SMS_TIMEOUT_MS}ms`);
+      return { success: false, error: 'SMS timeout' };
+    }
     console.error(`❌ SMS error:`, err.message);
     return { success: false, error: err.message };
   }
