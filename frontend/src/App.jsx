@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ThemeProvider }          from './context/ThemeContext';
 import { AuthProvider, useAuth }  from './context/AuthContext';
+import { CompanyProvider }        from './context/CompanyContext';  // ← add
 import useResponsive              from './hooks/useResponsive';
 
 import Navbar       from './components/Navbar';
@@ -42,14 +43,12 @@ function AppContent() {
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
-  // Redirect to login if accessing protected page while logged out
   useEffect(() => {
     if (!loading && !isLoggedIn && PROTECTED.includes(page)) {
       navigate('login');
     }
   }, [page, isLoggedIn, loading, navigate]);
 
-  // Redirect to dashboard if logged in and on login or landing ONLY
   useEffect(() => {
     if (!loading && isLoggedIn && (page === 'login' || page === 'landing')) {
       navigate('dashboard');
@@ -94,10 +93,12 @@ function AppContent() {
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
-    </ThemeProvider>
+    <CompanyProvider>          {/* ← add */}
+      <ThemeProvider>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </ThemeProvider>
+    </CompanyProvider>
   );
 }

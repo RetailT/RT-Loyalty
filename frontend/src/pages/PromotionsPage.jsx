@@ -29,17 +29,17 @@ function PromotionCard({ promo, theme, mode }) {
       transition: 'transform 0.2s, box-shadow 0.2s',
       cursor: 'default',
     }}
-    onMouseEnter={e => { e.currentTarget.style.transform='translateY(-3px)'; e.currentTarget.style.boxShadow='0 8px 24px rgba(255,107,0,0.12)'; e.currentTarget.style.borderColor='rgba(255,107,0,0.3)'; }}
+    onMouseEnter={e => { e.currentTarget.style.transform='translateY(-3px)'; e.currentTarget.style.boxShadow='0 8px 24px color-mix(in srgb, var(--primary) 12%, transparent)'; e.currentTarget.style.borderColor='color-mix(in srgb, var(--primary) 30%, transparent)'; }}
     onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='none'; e.currentTarget.style.borderColor=theme.border; }}>
 
       {/* Color banner */}
-      <div style={{ height:6, background:'linear-gradient(90deg,#FF6B00,#FF8C00)' }} />
+      <div style={{ height:6, background:'linear-gradient(90deg, var(--primary), var(--primary-dark))' }} />
 
       <div style={{ padding:16 }}>
         {/* Discount badge */}
         {discountLabel && (
-          <div style={{ display:'inline-flex', alignItems:'center', background:'rgba(255,107,0,0.1)', border:'1px solid rgba(255,107,0,0.25)', borderRadius:20, padding:'3px 10px', marginBottom:10 }}>
-            <span style={{ color:'#FF6B00', fontSize:12, fontFamily:"'Space Mono',monospace", fontWeight:700, letterSpacing:1 }}> {discountLabel}</span>
+          <div style={{ display:'inline-flex', alignItems:'center', background:'color-mix(in srgb, var(--primary) 10%, transparent)', border:'1px solid color-mix(in srgb, var(--primary) 25%, transparent)', borderRadius:20, padding:'3px 10px', marginBottom:10 }}>
+            <span style={{ color:'var(--primary)', fontSize:12, fontFamily:"'Space Mono',monospace", fontWeight:700, letterSpacing:1 }}> {discountLabel}</span>
           </div>
         )}
 
@@ -53,7 +53,7 @@ function PromotionCard({ promo, theme, mode }) {
 
         {/* Price */}
         <div style={{ display:'flex', alignItems:'baseline', gap:8 }}>
-          <div style={{ color:'#FF6B00', fontFamily:"'Bebas Neue',sans-serif", fontSize:28, letterSpacing:1 }}>
+          <div style={{ color:'var(--primary)', fontFamily:"'Bebas Neue',sans-serif", fontSize:28, letterSpacing:1 }}>
             Rs. {discountedPrice.toFixed(2)}
           </div>
           {hasDiscount && (
@@ -123,7 +123,7 @@ export default function PromotionsPage() {
             color:theme.text, fontSize:15, outline:'none',
             fontFamily:'inherit',
           }}
-          onFocus={e => e.target.style.borderColor='#FF6B00'}
+          onFocus={e => e.target.style.borderColor='var(--primary)'}
           onBlur={e  => e.target.style.borderColor=theme.border}
         />
       </div>

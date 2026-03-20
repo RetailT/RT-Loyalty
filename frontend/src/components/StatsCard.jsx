@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
 
-export default function StatsCard({ title, value, subtitle, icon, color = '#FF6B00', trend, valueFontSize = 30, subtitleFontSize = 11 }) {
+export default function StatsCard({ title, value, subtitle, icon, color = 'var(--primary)', trend, valueFontSize = 30, subtitleFontSize = 11 }) {
   const { theme }       = useTheme();
   const [hovered, setHovered] = useState(false);
 

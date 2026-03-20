@@ -50,10 +50,10 @@ export default function Navbar({ currentPage, onNavigate }) {
       }}>
         {/* Logo */}
         <div style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer' }} onClick={() => handleNav(user ? 'dashboard' : 'landing')}>
-          <div style={{ width:34, height:34, background:'linear-gradient(135deg,#FF6B00,#FF8C00)', borderRadius:9, display:'flex', alignItems:'center', justifyContent:'center', fontSize:15, fontWeight:900, color:'#fff', boxShadow:'0 4px 12px rgba(255,107,0,0.35)', flexShrink:0 }}>RT</div>
+          <div style={{ width:34, height:34, background:'linear-gradient(135deg, var(--primary), var(--primary-dark))', borderRadius:9, display:'flex', alignItems:'center', justifyContent:'center', fontSize:15, fontWeight:900, color:'#fff', boxShadow:'0 4px 12px color-mix(in srgb, var(--primary) 35%, transparent)', flexShrink:0 }}>RT</div>
           <div>
             <div style={{ color:theme.text, fontFamily:"'Bebas Neue',sans-serif", fontSize:isMobile?16:18, letterSpacing:2, lineHeight:1 }}>RETAIL</div>
-            <div style={{ color:'#FF6B00', fontSize:8, letterSpacing:3, textTransform:'uppercase', fontFamily:'monospace' }}>LOYALTY PORTAL</div>
+            <div style={{ color:'var(--primary)', fontSize:8, letterSpacing:3, textTransform:'uppercase', fontFamily:'monospace' }}>LOYALTY PORTAL</div>
           </div>
         </div>
 
@@ -62,9 +62,9 @@ export default function Navbar({ currentPage, onNavigate }) {
           <div style={{ display:'flex', gap:4 }}>
             {navItems.map(item => (
               <button key={item.id} onClick={() => handleNav(item.id)} style={{
-                background: currentPage===item.id ? 'linear-gradient(135deg,rgba(255,107,0,0.12),rgba(255,140,0,0.06))' : 'transparent',
-                border: `1px solid ${currentPage===item.id ? 'rgba(255,107,0,0.35)' : 'transparent'}`,
-                color: currentPage===item.id ? '#FF6B00' : theme.textMuted,
+                background: currentPage===item.id ? 'linear-gradient(135deg,color-mix(in srgb, var(--primary) 12%, transparent),color-mix(in srgb, var(--primary-dark) 6%, transparent))' : 'transparent',
+                border: `1px solid ${currentPage===item.id ? 'color-mix(in srgb, var(--primary) 35%, transparent)' : 'transparent'}`,
+                color: currentPage===item.id ? 'var(--primary)' : theme.textMuted,
                 padding:'7px 14px', borderRadius:8, cursor:'pointer',
                 fontFamily:"'Space Mono',monospace", fontSize:10, letterSpacing:1,
                 textTransform:'uppercase', transition:'all 0.2s',
@@ -86,11 +86,11 @@ export default function Navbar({ currentPage, onNavigate }) {
               {!isMobile && (
                 <div style={{ textAlign:'right' }}>
                   <div style={{ color:theme.text, fontSize:12, fontWeight:600 }}>{user.name}</div>
-                  <div style={{ color:'#FF6B00', fontSize:10, letterSpacing:1, textTransform:'uppercase' }}>{user.membershipTier} Member</div>
+                  <div style={{ color:'var(--primary)', fontSize:10, letterSpacing:1, textTransform:'uppercase' }}>{user.membershipTier} Member</div>
                 </div>
               )}
               <div ref={menuRef} style={{ position:'relative' }}>
-                <div onClick={() => setMenuOpen(!menuOpen)} style={{ width:34, height:34, background:'linear-gradient(135deg,#FF6B00,#FF8C00)', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontWeight:900, fontSize:13, cursor:'pointer', boxShadow:'0 4px 12px rgba(255,107,0,0.35)' }}>
+                <div onClick={() => setMenuOpen(!menuOpen)} style={{ width:34, height:34, background:'linear-gradient(135deg, var(--primary), var(--primary-dark))', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontWeight:900, fontSize:13, cursor:'pointer', boxShadow:'0 4px 12px color-mix(in srgb, var(--primary) 35%, transparent)' }}>
                   {user.name?.charAt(0) || 'U'}
                 </div>
                 {menuOpen && (
@@ -100,7 +100,7 @@ export default function Navbar({ currentPage, onNavigate }) {
                       <div style={{ color:theme.textMuted, fontSize:10, fontFamily:"'Space Mono',monospace" }}>{user.email}</div>
                     </div>
                     {(isMobile||isTablet) && navItems.map(item => (
-                      <button key={item.id} onClick={() => handleNav(item.id)} style={{ width:'100%', padding:'10px 16px', background: currentPage===item.id?'rgba(255,107,0,0.08)':'transparent', border:'none', color: currentPage===item.id?'#FF6B00':theme.textSub, cursor:'pointer', textAlign:'left', fontSize:13, display:'flex', alignItems:'center', gap:8, borderBottom:`1px solid ${theme.border}` }}>
+                      <button key={item.id} onClick={() => handleNav(item.id)} style={{ width:'100%', padding:'10px 16px', background: currentPage===item.id?'color-mix(in srgb, var(--primary) 8%, transparent)':'transparent', border:'none', color: currentPage===item.id?'var(--primary)':theme.textSub, cursor:'pointer', textAlign:'left', fontSize:13, display:'flex', alignItems:'center', gap:8, borderBottom:`1px solid ${theme.border}` }}>
                         <span>{item.icon}</span>{item.label}
                       </button>
                     ))}
@@ -112,7 +112,7 @@ export default function Navbar({ currentPage, onNavigate }) {
               </div>
             </>
           ) : (
-            <button onClick={() => handleNav('login')} style={{ background:'linear-gradient(135deg,#FF6B00,#FF8C00)', border:'none', borderRadius:8, padding:'8px 18px', color:'#fff', fontSize:12, fontWeight:700, fontFamily:"'Space Mono',monospace", letterSpacing:1, cursor:'pointer', textTransform:'uppercase', boxShadow:'0 4px 12px rgba(255,107,0,0.3)' }}>
+            <button onClick={() => handleNav('login')} style={{ background:'linear-gradient(135deg, var(--primary), var(--primary-dark))', border:'none', borderRadius:8, padding:'8px 18px', color:'#fff', fontSize:12, fontWeight:700, fontFamily:"'Space Mono',monospace", letterSpacing:1, cursor:'pointer', textTransform:'uppercase', boxShadow:'0 4px 12px color-mix(in srgb, var(--primary) 30%, transparent)' }}>
               Login
             </button>
           )}
@@ -127,7 +127,7 @@ export default function Navbar({ currentPage, onNavigate }) {
       {isTablet && tabletNav && user && (
         <div style={{ background:theme.navBg, borderBottom:`1px solid ${theme.border}`, padding:'8px 16px', display:'flex', gap:6, flexWrap:'wrap', zIndex:99, position:'sticky', top:64, boxShadow:theme.navShadow }}>
           {navItems.map(item => (
-            <button key={item.id} onClick={() => handleNav(item.id)} style={{ background: currentPage===item.id?'rgba(255,107,0,0.12)':theme.bgAccent, border:`1px solid ${currentPage===item.id?'rgba(255,107,0,0.35)':theme.border}`, color: currentPage===item.id?'#FF6B00':theme.textMuted, padding:'8px 14px', borderRadius:8, cursor:'pointer', fontFamily:"'Space Mono',monospace", fontSize:11, letterSpacing:1, textTransform:'uppercase', display:'flex', alignItems:'center', gap:6 }}>
+            <button key={item.id} onClick={() => handleNav(item.id)} style={{ background: currentPage===item.id?'color-mix(in srgb, var(--primary) 12%, transparent)':theme.bgAccent, border:`1px solid ${currentPage===item.id?'color-mix(in srgb, var(--primary) 35%, transparent)':theme.border}`, color: currentPage===item.id?'var(--primary)':theme.textMuted, padding:'8px 14px', borderRadius:8, cursor:'pointer', fontFamily:"'Space Mono',monospace", fontSize:11, letterSpacing:1, textTransform:'uppercase', display:'flex', alignItems:'center', gap:6 }}>
               <span>{item.icon}</span>{item.label}
             </button>
           ))}

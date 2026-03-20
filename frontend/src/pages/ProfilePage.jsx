@@ -49,7 +49,7 @@ export default function ProfilePage({ onNavigate }) {
   const inputStyle = (active) => ({
     width:'100%', padding:'12px 14px', borderRadius:10, fontSize:15,
     background: active ? (mode==='dark'?'#1a1a1a':'#f5f5f5') : theme.bgSubtle,
-    border:`1px solid ${active?'#FF6B00':theme.border}`,
+    border:`1px solid ${active?'var(--primary)':theme.border}`,
     color: active ? theme.text : theme.textSub,
     outline:'none', transition:'all 0.2s', boxSizing:'border-box',
     cursor: active ? 'text' : 'default',
@@ -58,20 +58,20 @@ export default function ProfilePage({ onNavigate }) {
   return (
     <div style={{ maxWidth:900, margin:'0 auto', padding: isMobile?'24px 16px 100px':'32px 32px 60px' }}>
       <div style={{ marginBottom:24 }}>
-        <div style={{ color:'#FF6B00', fontSize:12, fontFamily:"'Space Mono',monospace", letterSpacing:3, textTransform:'uppercase', marginBottom:4 }}>◉ Account</div>
+        <div style={{ color:'var(--primary)', fontSize:12, fontFamily:"'Space Mono',monospace", letterSpacing:3, textTransform:'uppercase', marginBottom:4 }}>◉ Account</div>
         <h1 style={{ color:theme.text, fontFamily:"'Bebas Neue',sans-serif", fontSize: isMobile?37:46, letterSpacing:2 }}>MY PROFILE</h1>
       </div>
 
       {/* Avatar card */}
       <div {...avatarCardProps} style={{ ...avatarCardProps.style, cursor:'default' }}>
-        <div style={{ width:60, height:60, borderRadius:16, flexShrink:0, background:'linear-gradient(135deg,#FF6B00,#FF8C00)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:30, fontWeight:900, color:'#fff', fontFamily:"'Bebas Neue',sans-serif", boxShadow:'0 8px 24px rgba(255,107,0,0.35)' }}>
+        <div style={{ width:60, height:60, borderRadius:16, flexShrink:0, background:'linear-gradient(135deg, var(--primary), var(--primary-dark))', display:'flex', alignItems:'center', justifyContent:'center', fontSize:30, fontWeight:900, color:'#fff', fontFamily:"'Bebas Neue',sans-serif", boxShadow:'0 8px 24px color-mix(in srgb, var(--primary) 35%, transparent)' }}>
           {user.name?.charAt(0)||'U'}
         </div>
         <div style={{ flex:1, minWidth:0 }}>
           <div style={{ color:theme.text, fontFamily:"'Bebas Neue',sans-serif", fontSize:23, letterSpacing:1, marginBottom:2 }}>{user.name}</div>
           <div style={{ color:theme.textMuted, fontSize:14, fontFamily:"'Space Mono',monospace", marginBottom:8 }}>{user.phone}</div>
           <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-            <span style={{ background:'rgba(255,107,0,0.08)', border:'1px solid rgba(255,107,0,0.25)', borderRadius:6, padding:'3px 10px', color:'#FF6B00', fontSize:10, fontFamily:"'Space Mono',monospace", letterSpacing:2, textTransform:'uppercase' }}>
+            <span style={{ background:'color-mix(in srgb, var(--primary) 8%, transparent)', border:'1px solid color-mix(in srgb, var(--primary) 25%, transparent)', borderRadius:6, padding:'3px 10px', color:'var(--primary)', fontSize:10, fontFamily:"'Space Mono',monospace", letterSpacing:2, textTransform:'uppercase' }}>
               🏪 {user.loyaltyType || 'Member'}
             </span>
             <span style={{ background:theme.successBg, border:`1px solid ${theme.successBorder}`, borderRadius:6, padding:'3px 10px', color:theme.successText, fontSize:10, fontFamily:"'Space Mono',monospace", letterSpacing:2, textTransform:'uppercase' }}>
@@ -88,7 +88,7 @@ export default function ProfilePage({ onNavigate }) {
       <div {...infoCardProps} style={{ ...infoCardProps.style, cursor:'default' }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-            <span style={{ color:'#FF6B00' }}>◈</span>
+            <span style={{ color:'var(--primary)' }}>◈</span>
             <span style={{ color:theme.text, fontWeight:700, fontSize:15 }}>Personal Information</span>
           </div>
           <button 
@@ -96,7 +96,7 @@ export default function ProfilePage({ onNavigate }) {
             disabled={saving}
             onMouseEnter={e => {
               if (!editing) {
-                e.currentTarget.style.background = 'linear-gradient(135deg,#FF6B00,#FF8C00)';
+                e.currentTarget.style.background = 'linear-gradient(135deg, var(--primary), var(--primary-dark))';
                 e.currentTarget.style.borderColor = 'transparent';
                 e.currentTarget.style.color = '#fff';
               }
@@ -109,7 +109,7 @@ export default function ProfilePage({ onNavigate }) {
               }
             }}
             style={{
-              background: editing ? 'linear-gradient(135deg,#FF6B00,#FF8C00)' : theme.bgAccent,
+              background: editing ? 'linear-gradient(135deg, var(--primary), var(--primary-dark))' : theme.bgAccent,
               border: `1px solid ${editing ? 'transparent' : theme.border}`,
               borderRadius: 8, padding: '7px 16px',
               color: editing ? '#fff' : theme.textMuted,
@@ -143,7 +143,7 @@ export default function ProfilePage({ onNavigate }) {
       {/* Account summary */}
       <div {...summaryCardProps} style={{ ...summaryCardProps.style, cursor:'default' }}>
         <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:16 }}>
-          <span style={{ color:'#FF6B00' }}>◫</span>
+          <span style={{ color:'var(--primary)' }}>◫</span>
           <span style={{ color:theme.text, fontWeight:700, fontSize:15 }}>Account Summary</span>
         </div>
         {[

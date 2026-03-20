@@ -64,9 +64,9 @@ export default function TermsPage() {
         <h1 style={{ color:theme.text, fontFamily:"'Bebas Neue',sans-serif", fontSize: isMobile?37:46, letterSpacing:2, lineHeight:1, marginBottom:8 }}>
           TERMS & CONDITIONS
         </h1>
-        <div style={{ display:'inline-flex', alignItems:'center', gap:6, background:'rgba(255,107,0,0.08)', border:'1px solid rgba(255,107,0,0.2)', padding:'5px 14px', borderRadius:40 }}>
+        <div style={{ display:'inline-flex', alignItems:'center', gap:6, background:'color-mix(in srgb, var(--primary) 8%, transparent)', border:'1px solid color-mix(in srgb, var(--primary) 20%, transparent)', padding:'5px 14px', borderRadius:40 }}>
           <span>🏪</span>
-          <span style={{ color:'#FF6B00', fontSize:13, fontFamily:"'Space Mono',monospace", letterSpacing:1 }}>{companyName}</span>
+          <span style={{ color:'var(--primary)', fontSize:13, fontFamily:"'Space Mono',monospace", letterSpacing:1 }}>{companyName}</span>
         </div>
       </div>
 
@@ -79,7 +79,7 @@ export default function TermsPage() {
             padding: isMobile ? '16px' : '20px 24px',
             display: 'flex', gap: 16, alignItems: 'flex-start',
           }}>
-            <div style={{ width:40, height:40, borderRadius:10, background:'rgba(255,107,0,0.08)', border:'1px solid rgba(255,107,0,0.2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:21, flexShrink:0 }}>
+            <div style={{ width:40, height:40, borderRadius:10, background:'color-mix(in srgb, var(--primary) 8%, transparent)', border:'1px solid color-mix(in srgb, var(--primary) 20%, transparent)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:21, flexShrink:0 }}>
               {t.icon}
             </div>
             <div>

@@ -11,14 +11,14 @@ export default function LoginPage({ onNavigate }) {
   const { isMobile }     = useResponsive();
   const { cardProps }    = useCardHover({ borderRadius: 20, padding: isMobile ? '28px 20px' : '36px 32px' });
 
-  const [step, setStep]             = useState('phone');
-  const [input, setInput]           = useState('');
-  const [otp, setOtp]               = useState(['','','','','','']);
-  const [loading, setLoading]       = useState(false);
-  const [timer, setTimer]           = useState(0);
-  const [error, setError]           = useState('');
-  const [devOtp, setDevOtp]         = useState('');
-  const [hasEmail, setHasEmail]     = useState(false);
+  const [step, setStep]               = useState('phone');
+  const [input, setInput]             = useState('');
+  const [otp, setOtp]                 = useState(['','','','','','']);
+  const [loading, setLoading]         = useState(false);
+  const [timer, setTimer]             = useState(0);
+  const [error, setError]             = useState('');
+  const [devOtp, setDevOtp]           = useState('');
+  const [hasEmail, setHasEmail]       = useState(false);
   const [maskedPhone, setMaskedPhone] = useState('');
 
   useEffect(() => {
@@ -36,7 +36,7 @@ export default function LoginPage({ onNavigate }) {
     setLoading(true);
     try {
       const res = await sendOTP(null, input.trim());
-      if (res.dev_otp)    setDevOtp(res.dev_otp);
+      if (res.dev_otp)     setDevOtp(res.dev_otp);
       if (res.maskedPhone) setMaskedPhone(res.maskedPhone);
       setHasEmail(res.hasEmail);
       setStep('otp');
@@ -78,6 +78,8 @@ export default function LoginPage({ onNavigate }) {
     }
   };
 
+  const primary = 'var(--primary)';
+
   const inp = {
     background: mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
     border: `1px solid ${theme.border}`,
@@ -103,10 +105,10 @@ export default function LoginPage({ onNavigate }) {
           <div style={{ textAlign: 'center', marginBottom: 28 }}>
             <div style={{
               width: 56, height: 50, margin: '0 auto 14px',
-              background: 'linear-gradient(135deg,#FF6B00,#FF8C00)',
+              background: `linear-gradient(135deg, var(--primary), var(--primary-dark))`,
               borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 24, fontWeight: 900, color: '#fff',
-              boxShadow: '0 8px 24px rgba(255,107,0,0.4)',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
               fontFamily: "'Bebas Neue',sans-serif", letterSpacing: 1,
             }}>RT</div>
             <h1 style={{ color: theme.text, fontFamily: "'Bebas Neue',sans-serif", fontSize: 26, letterSpacing: 2, marginBottom: 4 }}>
@@ -134,7 +136,7 @@ export default function LoginPage({ onNavigate }) {
                   placeholder="07XXXXXXXX / NIC / Passport / Loyalty No"
                   autoFocus
                   style={{ ...inp, width: '100%', padding: '12px 14px', fontSize: 14, boxSizing: 'border-box' }}
-                  onFocus={e => e.target.style.borderColor = '#FF6B00'}
+                  onFocus={e => e.target.style.borderColor = primary}
                   onBlur={e  => e.target.style.borderColor = theme.border}
                 />
               </div>
@@ -150,13 +152,13 @@ export default function LoginPage({ onNavigate }) {
                 disabled={!inputReady || loading}
                 style={{
                   width: '100%', padding: '14px',
-                  background: inputReady ? 'linear-gradient(135deg,#FF6B00,#FF8C00)' : theme.bgAccent,
+                  background: inputReady ? 'linear-gradient(135deg, var(--primary), var(--primary-dark))' : theme.bgAccent,
                   border: 'none', borderRadius: 10,
                   color: inputReady ? '#fff' : theme.textFaint,
                   fontFamily: "'Space Mono',monospace", fontSize: 11,
                   letterSpacing: 2, textTransform: 'uppercase',
                   cursor: inputReady ? 'pointer' : 'not-allowed',
-                  boxShadow: inputReady ? '0 8px 24px rgba(255,107,0,0.3)' : 'none',
+                  boxShadow: inputReady ? '0 8px 24px rgba(0,0,0,0.2)' : 'none',
                   transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                 }}
               >
@@ -164,9 +166,9 @@ export default function LoginPage({ onNavigate }) {
               </button>
 
               {/* Info box */}
-              <div style={{ marginTop: 16, padding: '10px 12px', background: 'rgba(255,107,0,0.06)', border: '1px solid rgba(255,107,0,0.15)', borderRadius: 8 }}>
+              <div style={{ marginTop: 16, padding: '10px 12px', background: 'rgba(0,0,0,0.04)', border: `1px solid ${theme.border}`, borderRadius: 8 }}>
                 <div style={{ color: theme.textMuted, fontSize: 9, fontFamily: "'Space Mono',monospace", lineHeight: 1.8 }}>
-                  📱 We'll send a 6-digit OTP code to verify your identity.<br/>
+                  📱 We'll send a 6-digit OTP code to verify your identity.
                 </div>
               </div>
             </>
@@ -182,7 +184,7 @@ export default function LoginPage({ onNavigate }) {
                 </div>
               )}
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'rgba(255,107,0,0.06)', border: '1px solid rgba(255,107,0,0.15)', borderRadius: 10, marginBottom: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'rgba(0,0,0,0.04)', border: `1px solid ${theme.border}`, borderRadius: 10, marginBottom: 20 }}>
                 <span style={{ fontSize: 18 }}>📱</span>
                 <div>
                   <div style={{ color: theme.text, fontSize: 12, fontWeight: 600 }}>{maskedPhone || input}</div>
@@ -206,7 +208,7 @@ export default function LoginPage({ onNavigate }) {
                       width: isMobile ? 42 : 48, height: isMobile ? 48 : 54,
                       textAlign: 'center', fontSize: 20, fontWeight: 900,
                       borderWidth: digit ? 2 : 1,
-                      borderColor: digit ? '#FF6B00' : theme.border,
+                      borderColor: digit ? primary : theme.border,
                     }}
                   />
                 ))}
@@ -215,12 +217,12 @@ export default function LoginPage({ onNavigate }) {
               <div style={{ textAlign: 'center', marginBottom: 20 }}>
                 {timer > 0 ? (
                   <span style={{ color: theme.textMuted, fontSize: 12, fontFamily: "'Space Mono',monospace" }}>
-                    Resend in <span style={{ color: '#FF6B00' }}>{timer}s</span>
+                    Resend in <span style={{ color: primary }}>{timer}s</span>
                   </span>
                 ) : (
                   <button
                     onClick={() => { setTimer(60); setOtp(['','','','','','']); handleSendOTP(); }}
-                    style={{ background: 'none', border: 'none', color: '#FF6B00', fontSize: 12, cursor: 'pointer', fontFamily: "'Space Mono',monospace" }}
+                    style={{ background: 'none', border: 'none', color: primary, fontSize: 12, cursor: 'pointer', fontFamily: "'Space Mono',monospace" }}
                   >
                     Resend OTP →
                   </button>
@@ -238,13 +240,13 @@ export default function LoginPage({ onNavigate }) {
                 disabled={!otpReady || loading}
                 style={{
                   width: '100%', padding: '14px',
-                  background: otpReady ? 'linear-gradient(135deg,#FF6B00,#FF8C00)' : theme.bgAccent,
+                  background: otpReady ? 'linear-gradient(135deg, var(--primary), var(--primary-dark))' : theme.bgAccent,
                   border: 'none', borderRadius: 10,
                   color: otpReady ? '#fff' : theme.textFaint,
                   fontFamily: "'Space Mono',monospace", fontSize: 11,
                   letterSpacing: 2, textTransform: 'uppercase',
                   cursor: otpReady ? 'pointer' : 'not-allowed',
-                  boxShadow: otpReady ? '0 8px 24px rgba(255,107,0,0.3)' : 'none',
+                  boxShadow: otpReady ? '0 8px 24px rgba(0,0,0,0.2)' : 'none',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                   transition: 'all 0.2s',
                 }}
@@ -262,12 +264,6 @@ export default function LoginPage({ onNavigate }) {
           )}
 
         </div>
-
-        {/* <p style={{ textAlign: 'center', color: theme.textFaint, fontSize: 11, marginTop: 16, lineHeight: 1.6 }}>
-          By continuing, you agree to Retail's{' '}
-          <span style={{ color: '#FF6B00', cursor: 'pointer' }}>Terms of Service</span> and{' '}
-          <span style={{ color: '#FF6B00', cursor: 'pointer' }}>Privacy Policy</span>
-        </p> */}
       </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>

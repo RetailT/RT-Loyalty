@@ -64,9 +64,9 @@ export default function TransactionsPage() {
       .finally(() => setLoading(false));
   }, [token, filter, page]);
 
-  const txColor  = t => t==='en'?theme.successText:t==='rd'||t==='rm'?theme.redText:t==='pd'||t==='sdb'?'#FF6B00':theme.textMuted;
-  const txBg     = t => t==='en'?theme.successBg:t==='rd'||t==='rm'?theme.errorBg:'rgba(255,107,0,0.08)';
-  const txBorder = t => t==='en'?theme.successBorder:t==='rd'||t==='rm'?theme.errorBorder:'rgba(255,107,0,0.25)';
+  const txColor  = t => t==='en'?theme.successText:t==='rd'||t==='rm'?theme.redText:t==='pd'||t==='sdb'?'var(--primary)':theme.textMuted;
+  const txBg     = t => t==='en'?theme.successBg:t==='rd'||t==='rm'?theme.errorBg:'color-mix(in srgb, var(--primary) 8%, transparent)';
+  const txBorder = t => t==='en'?theme.successBorder:t==='rd'||t==='rm'?theme.errorBorder:'color-mix(in srgb, var(--primary) 25%, transparent)';
 
   // Summary — EN = earned, RM = redeemed (negative values)
   const totalEarned   = txs.filter(t=>(t.ID||'').trim().toLowerCase()==='en')
@@ -85,7 +85,7 @@ export default function TransactionsPage() {
   return (
     <div style={{ maxWidth:900, margin:'0 auto', padding: isMobile?'24px 16px 100px':'32px 32px 60px' }}>
       <div style={{ marginBottom:24 }}>
-        <div style={{ color:'#FF6B00', fontSize:12, fontFamily:"'Space Mono',monospace", letterSpacing:3, textTransform:'uppercase', marginBottom:4 }}>◈ Points Activity</div>
+        <div style={{ color:'var(--primary)', fontSize:12, fontFamily:"'Space Mono',monospace", letterSpacing:3, textTransform:'uppercase', marginBottom:4 }}>◈ Points Activity</div>
         <h1 style={{ color:theme.text, fontFamily:"'Bebas Neue',sans-serif", fontSize: isMobile?37:46, letterSpacing:2 }}>TRANSACTION HISTORY</h1>
       </div>
 
@@ -100,7 +100,7 @@ export default function TransactionsPage() {
         {filters.map(({ val, lbl }) => (
           <button key={val} onClick={() => setFilter(val)} style={{
             padding:'6px 14px', borderRadius:8,
-            background: filter===val ? 'linear-gradient(135deg,#FF6B00,#FF8C00)' : theme.bgAccent,
+            background: filter===val ? 'linear-gradient(135deg, var(--primary), var(--primary-dark))' : theme.bgAccent,
             border:`1px solid ${filter===val ? 'transparent' : theme.border}`,
             color: filter===val ? '#fff' : theme.textMuted,
             fontFamily:"'Space Mono',monospace", fontSize:12, letterSpacing:1, textTransform:'uppercase',
@@ -151,7 +151,7 @@ export default function TransactionsPage() {
           );
         })}
         {hasMore && !loading && (
-          <button onClick={() => setPage(p=>p+1)} style={{ width:'100%', padding:'14px', background:'transparent', border:'none', borderTop:`1px solid ${theme.border}`, color:'#FF6B00', fontFamily:"'Space Mono',monospace", fontSize:13, letterSpacing:1, cursor:'pointer' }}>
+          <button onClick={() => setPage(p=>p+1)} style={{ width:'100%', padding:'14px', background:'transparent', border:'none', borderTop:`1px solid ${theme.border}`, color:'var(--primary)', fontFamily:"'Space Mono',monospace", fontSize:13, letterSpacing:1, cursor:'pointer' }}>
             LOAD MORE →
           </button>
         )}

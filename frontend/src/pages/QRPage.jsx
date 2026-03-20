@@ -36,7 +36,7 @@ function QRDisplay({ value, size = 220 }) {
       <canvas ref={canvasRef} style={{ display:'block', borderRadius:16 }} />
       {!qrLoaded && (
         <div style={{ position:'absolute', inset:0, background:'#f5f5f5', borderRadius:16, display:'flex', alignItems:'center', justifyContent:'center' }}>
-          <div style={{ width:32, height:32, border:'3px solid rgba(255,107,0,0.2)', borderTopColor:'#FF6B00', borderRadius:'50%', animation:'spin 0.8s linear infinite' }} />
+          <div style={{ width:32, height:32, border:'3px solid color-mix(in srgb, var(--primary) 20%, transparent)', borderTopColor:'var(--primary)', borderRadius:'50%', animation:'spin 0.8s linear infinite' }} />
         </div>
       )}
     </div>
@@ -71,9 +71,9 @@ export default function QRPage() {
         boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
       }}>
         {/* Shop badge */}
-        <div style={{ display:'inline-flex', alignItems:'center', gap:6, background:'rgba(255,107,0,0.08)', border:'1px solid rgba(255,107,0,0.2)', padding:'6px 16px', borderRadius:40, marginBottom:24 }}>
+        <div style={{ display:'inline-flex', alignItems:'center', gap:6, background:'color-mix(in srgb, var(--primary) 8%, transparent)', border:'1px solid color-mix(in srgb, var(--primary) 20%, transparent)', padding:'6px 16px', borderRadius:40, marginBottom:24 }}>
           <span>🏪</span>
-          <span style={{ color:'#FF6B00', fontSize:13, fontFamily:"'Space Mono',monospace", letterSpacing:1, textTransform:'uppercase' }}>{user.companyName}</span>
+          <span style={{ color:'var(--primary)', fontSize:13, fontFamily:"'Space Mono',monospace", letterSpacing:1, textTransform:'uppercase' }}>{user.companyName}</span>
         </div>
 
         {/* QR */}
@@ -94,8 +94,8 @@ export default function QRPage() {
         </div>
 
         {/* Loyalty type badge */}
-        <div style={{ display:'inline-flex', alignItems:'center', gap:6, background:'linear-gradient(135deg,rgba(255,107,0,0.12),rgba(255,140,0,0.06))', border:'1px solid rgba(255,107,0,0.25)', padding:'8px 20px', borderRadius:40 }}>
-          <span style={{ color:'#FF6B00', fontSize:14, fontFamily:"'Space Mono',monospace", letterSpacing:1, textTransform:'uppercase' }}>
+        <div style={{ display:'inline-flex', alignItems:'center', gap:6, background:'rgba(0,0,0,0.04)', border:'1px solid color-mix(in srgb, var(--primary) 25%, transparent)', padding:'8px 20px', borderRadius:40 }}>
+          <span style={{ color:'var(--primary)', fontSize:14, fontFamily:"'Space Mono',monospace", letterSpacing:1, textTransform:'uppercase' }}>
             {user.loyaltyType || 'Member'}
           </span>
         </div>
@@ -107,7 +107,7 @@ export default function QRPage() {
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
           <div style={{ background: mode==='dark'?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.03)', borderRadius:12, padding:'14px 12px' }}>
             <div style={{ color:theme.textMuted, fontSize:12, fontFamily:"'Space Mono',monospace", letterSpacing:1, textTransform:'uppercase', marginBottom:6 }}>Available</div>
-            <div style={{ color:'#FF6B00', fontFamily:"'Bebas Neue',sans-serif", fontSize:32, letterSpacing:1 }}>
+            <div style={{ color:'var(--primary)', fontFamily:"'Bebas Neue',sans-serif", fontSize:32, letterSpacing:1 }}>
               {(user.availablePoints || 0).toLocaleString()}
             </div>
             <div style={{ color:theme.textFaint, fontSize:12 }}>points</div>

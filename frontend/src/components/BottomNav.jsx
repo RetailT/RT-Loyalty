@@ -25,9 +25,9 @@ export default function BottomNav({ currentPage, onNavigate }) {
             flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
             padding:'8px 4px', gap:3, border:'none', background:'transparent', cursor:'pointer', transition:'all 0.2s',
           }}>
-            <span style={{ fontSize:18, lineHeight:1, color: active?'#FF6B00':theme.textFaint, transition:'color 0.2s' }}>{t.icon}</span>
-            <span style={{ fontSize:9, fontFamily:"'Space Mono',monospace", letterSpacing:0.5, textTransform:'uppercase', color: active?'#FF6B00':theme.textFaint, transition:'color 0.2s' }}>{t.label}</span>
-            {active && <div style={{ width:16, height:2, background:'#FF6B00', borderRadius:1, marginTop:1 }} />}
+            <span style={{ fontSize:18, lineHeight:1, color: active?'var(--primary)':theme.textFaint, transition:'color 0.2s' }}>{t.icon}</span>
+            <span style={{ fontSize:9, fontFamily:"'Space Mono',monospace", letterSpacing:0.5, textTransform:'uppercase', color: active?'var(--primary)':theme.textFaint, transition:'color 0.2s' }}>{t.label}</span>
+            {active && <div style={{ width:16, height:2, background:'var(--primary)', borderRadius:1, marginTop:1 }} />}
           </button>
         );
       })}

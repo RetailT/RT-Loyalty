@@ -6,9 +6,9 @@ import StatsCard from '../components/StatsCard';
 import { getMyTransactions } from '../api';
 import { fs, fh, fm } from '../utils/fontScale';
 
-const txColor   = (type, theme) => type==='en'?theme.successText:type==='rm'?theme.redText:'#FF6B00';
-const txBg      = (type, theme) => type==='en'?theme.successBg:type==='rm'?theme.errorBg:'rgba(255,107,0,0.08)';
-const txBorderC = (type, theme) => type==='en'?theme.successBorder:type==='rm'?theme.errorBorder:'rgba(255,107,0,0.25)';
+const txColor   = (type, theme) => type==='en'?theme.successText:type==='rm'?theme.redText:'var(--primary)';
+const txBg      = (type, theme) => type==='en'?theme.successBg:type==='rm'?theme.errorBg:'color-mix(in srgb, var(--primary) 8%, transparent)';
+const txBorderC = (type, theme) => type==='en'?theme.successBorder:type==='rm'?theme.errorBorder:'color-mix(in srgb, var(--primary) 25%, transparent)';
 
 function QRDisplay({ value, size = 160 }) {
   const canvasRef = React.useRef(null);
@@ -33,7 +33,7 @@ function QRDisplay({ value, size = 160 }) {
   return (
     <div style={{ position:'relative', display:'inline-block' }}>
       <canvas ref={canvasRef} style={{ display:'block', borderRadius:12 }} />
-      {!qrLoaded && <div style={{ position:'absolute', inset:0, background:'#f5f5f5', borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center' }}><div style={{ width:24, height:24, border:'3px solid rgba(255,107,0,0.2)', borderTopColor:'#FF6B00', borderRadius:'50%', animation:'spin 0.8s linear infinite' }} /></div>}
+      {!qrLoaded && <div style={{ position:'absolute', inset:0, background:'#f5f5f5', borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center' }}><div style={{ width:24, height:24, border:'3px solid color-mix(in srgb, var(--primary) 20%, transparent)', borderTopColor:'var(--primary)', borderRadius:'50%', animation:'spin 0.8s linear infinite' }} /></div>}
     </div>
   );
 }
@@ -42,7 +42,7 @@ function QuickLinkCard({ q, onNavigate }) {
   const { cardProps } = useCardHover({ borderRadius:14, padding:'16px 14px', textAlign:'left' });
   return (
     <button onClick={() => onNavigate(q.page)} {...cardProps} style={{ ...cardProps.style, width:'100%', border: cardProps.style.border }}>
-      <div style={{ fontSize:23, color:'#FF6B00', marginBottom:8 }}>{q.icon}</div>
+      <div style={{ fontSize:23, color:'var(--primary)', marginBottom:8 }}>{q.icon}</div>
       <div style={{ color:'inherit', fontWeight:700, fontSize:14, marginBottom:2 }}>{q.label}</div>
       <div style={{ fontSize:12, fontFamily:"'Space Mono',monospace" }}>{q.sub}</div>
     </button>
@@ -111,7 +111,7 @@ export default function DashboardPage({ onNavigate }) {
       <div style={{ marginBottom:12 }}>
         <div
           onClick={() => onNavigate('qr')}
-          style={{ background:'linear-gradient(135deg,#FF6B00,#FF8C00)', borderRadius:20, padding: isMobile?20:28, position:'relative', overflow:'hidden', boxShadow:'0 16px 48px rgba(255,107,0,0.3)', cursor:'pointer' }}>
+          style={{ background:'linear-gradient(135deg, var(--primary), var(--primary-dark))', borderRadius:20, padding: isMobile?20:28, position:'relative', overflow:'hidden', boxShadow:'0 16px 48px color-mix(in srgb, var(--primary) 30%, transparent)', cursor:'pointer' }}>
           <div style={{ position:'absolute', top:-30, right:-30, width:140, height:140, background:'rgba(255,255,255,0.05)', borderRadius:'50%' }} />
           <div style={{ position:'absolute', bottom:-20, left:-20, width:100, height:100, background:'rgba(0,0,0,0.1)', borderRadius:'50%' }} />
           <div style={{ position:'relative', display:'flex', justifyContent:'space-between', alignItems:'flex-start', flexWrap:'wrap', gap:16 }}>
@@ -150,10 +150,10 @@ export default function DashboardPage({ onNavigate }) {
       <div style={{ background:theme.bgCard, border:`1px solid ${theme.border}`, borderRadius:16, overflow:'hidden' }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'16px 20px', borderBottom:`1px solid ${theme.border}` }}>
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-            <span style={{ color:'#FF6B00' }}>◈</span>
+            <span style={{ color:'var(--primary)' }}>◈</span>
             <span style={{ color:theme.text, fontWeight:700, fontSize:15 }}>Recent Activity</span>
           </div>
-          <button onClick={() => onNavigate('transactions')} style={{ background:'none', border:'none', color:'#FF6B00', fontSize:13, cursor:'pointer', fontFamily:"'Space Mono',monospace", letterSpacing:1 }}>SEE ALL →</button>
+          <button onClick={() => onNavigate('transactions')} style={{ background:'none', border:'none', color:'var(--primary)', fontSize:13, cursor:'pointer', fontFamily:"'Space Mono',monospace", letterSpacing:1 }}>SEE ALL →</button>
         </div>
         {loadingTx ? (
           <div style={{ padding:40, textAlign:'center', color:theme.textFaint, fontFamily:"'Space Mono',monospace", fontSize:14 }}>Loading...</div>
