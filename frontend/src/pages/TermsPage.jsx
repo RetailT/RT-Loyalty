@@ -8,7 +8,7 @@ function getSlug() {
   const host  = window.location.hostname;
   const parts = host.split('.');
   if (host === 'localhost' || host === '127.0.0.1' || host.includes('vercel.app'))
-    return new URLSearchParams(window.location.search).get('shop') || 'keells-nugegoda';
+    return new URLSearchParams(window.location.search).get('shop') || 'retailtarget';
   return parts[0];
 }
 

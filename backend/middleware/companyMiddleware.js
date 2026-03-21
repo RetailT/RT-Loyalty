@@ -14,9 +14,7 @@ const companyMiddleware = async (req, res, next) => {
     const isDev =
       cleanHost.includes('localhost') ||
       cleanHost.includes('127.0.0.1') ||
-      cleanHost.includes('vercel.app') ||
-      cleanHost.includes('render.com') ||
-      cleanHost.includes('onrender.com');
+      cleanHost.includes('vercel.app');
 
     let finalSlug = '';
 
