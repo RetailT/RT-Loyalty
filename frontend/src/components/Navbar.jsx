@@ -105,7 +105,7 @@ export default function Navbar({ currentPage, onNavigate }) {
                       </button>
                     ))}
                     <button onClick={handleLogout} style={{ width:'100%', padding:'10px 16px', background:'transparent', border:'none', color:theme.errorText, cursor:'pointer', textAlign:'left', fontSize:13, fontFamily:"'Space Mono',monospace" }}>
-                      ⏻ Sign Out
+                      ↩ Sign Out
                     </button>
                   </div>
                 )}

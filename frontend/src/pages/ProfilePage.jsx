@@ -166,7 +166,7 @@ export default function ProfilePage({ onNavigate }) {
       <button onClick={handleLogout} style={{ width:'100%', padding:'14px', background:theme.errorBg, border:`1px solid ${theme.errorBorder}`, borderRadius:12, color:theme.errorText, fontFamily:"'Space Mono',monospace", fontSize:13, letterSpacing:2, textTransform:'uppercase', cursor:'pointer', transition:'all 0.2s' }}
         onMouseEnter={e => e.currentTarget.style.background='rgba(248,113,113,0.15)'}
         onMouseLeave={e => e.currentTarget.style.background=theme.errorBg}>
-        ⏻ Sign Out
+        ↩ Sign Out
       </button>
     </div>
   );
