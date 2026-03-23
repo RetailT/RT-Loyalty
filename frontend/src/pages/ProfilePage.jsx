@@ -1,38 +1,49 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme, useCardHover } from '../context/ThemeContext';
 import useResponsive from '../hooks/useResponsive';
 import { updateMe } from '../api';
-import { fs, fh, fm } from '../utils/fontScale';
 
 export default function ProfilePage({ onNavigate }) {
   const { user, token, logout, refreshUser } = useAuth();
   const { theme, mode } = useTheme();
   const { isMobile }    = useResponsive();
 
-  const { cardProps: avatarCardProps }   = useCardHover({ borderRadius:16, padding: isMobile?'16px':'20px 24px', display:'flex', alignItems:'center', gap:16, marginBottom:16 });
-  const { cardProps: infoCardProps }     = useCardHover({ borderRadius:16, padding: isMobile?'16px':'20px 24px', marginBottom:16 });
-  const { cardProps: summaryCardProps }  = useCardHover({ borderRadius:16, padding: isMobile?'16px':'20px 24px', marginBottom:16 });
+  const { cardProps: avatarCardProps }  = useCardHover({ borderRadius:16, padding: isMobile?'16px':'20px 24px', display:'flex', alignItems:'center', gap:16, marginBottom:16 });
+  const { cardProps: infoCardProps }    = useCardHover({ borderRadius:16, padding: isMobile?'16px':'20px 24px', marginBottom:16 });
+  const { cardProps: summaryCardProps } = useCardHover({ borderRadius:16, padding: isMobile?'16px':'20px 24px', marginBottom:16 });
 
   const [editing, setEditing] = useState(false);
   const [saving,  setSaving]  = useState(false);
   const [saved,   setSaved]   = useState(false);
   const [error,   setError]   = useState('');
-  const [form, setForm] = useState({
-    email:         user?.email         || '',
-    city:          user?.city          || '',
-    occupation:    user?.occupation    || '',
-    date_of_birth: user?.dateOfBirth   ? user.dateOfBirth.slice(0,10) : '',
-  });
+  const [form, setForm] = useState(() => ({
+    email:         user?.email       || '',
+    city:          user?.city        || '',
+    occupation:    user?.occupation  || '',
+    date_of_birth: user?.dateOfBirth ? user.dateOfBirth.slice(0, 10) : '',
+  }));
+
+  // when user data load, form sync
+  useEffect(() => {
+    if (user) {
+      setForm({
+        email:         user.email       || '',
+        city:          user.city        || '',
+        occupation:    user.occupation  || '',
+        date_of_birth: user.dateOfBirth ? user.dateOfBirth.slice(0, 10) : '',
+      });
+    }
+  }, [user]);
 
   const handleSave = async () => {
     setSaving(true); setError('');
     try {
       await updateMe(token, {
-        email:         form.email         || undefined,
-        city:          form.city          || undefined,
-        occupation:    form.occupation    || undefined,
-        dob:           form.date_of_birth || undefined,
+        email:      form.email         || undefined,
+        city:       form.city          || undefined,
+        occupation: form.occupation    || undefined,
+        dob:        form.date_of_birth || undefined,
       });
       await refreshUser();
       setSaved(true); setEditing(false);
@@ -82,7 +93,7 @@ export default function ProfilePage({ onNavigate }) {
       </div>
 
       {saved && <div style={{ background:theme.successBg, border:`1px solid ${theme.successBorder}`, borderRadius:10, padding:'12px 16px', color:theme.successText, fontSize:14, fontFamily:"'Space Mono',monospace", marginBottom:16 }}>✓ Profile updated successfully</div>}
-      {error && <div style={{ background:theme.errorBg,   border:`1px solid ${theme.errorBorder}`,   borderRadius:10, padding:'12px 16px', color:theme.errorText,   fontSize:14, fontFamily:"'Space Mono',monospace", marginBottom:16 }}>⚠ {error}</div>}
+      {error && <div style={{ background:theme.errorBg, border:`1px solid ${theme.errorBorder}`, borderRadius:10, padding:'12px 16px', color:theme.errorText, fontSize:14, fontFamily:"'Space Mono',monospace", marginBottom:16 }}>⚠ {error}</div>}
 
       {/* Editable fields */}
       <div {...infoCardProps} style={{ ...infoCardProps.style, cursor:'default' }}>
@@ -91,32 +102,12 @@ export default function ProfilePage({ onNavigate }) {
             <span style={{ color:'var(--primary)' }}>◈</span>
             <span style={{ color:theme.text, fontWeight:700, fontSize:15 }}>Personal Information</span>
           </div>
-          <button 
-            onClick={() => editing ? handleSave() : setEditing(true)} 
+          <button
+            onClick={() => editing ? handleSave() : setEditing(true)}
             disabled={saving}
-            onMouseEnter={e => {
-              if (!editing) {
-                e.currentTarget.style.background = 'linear-gradient(135deg, var(--primary), var(--primary-dark))';
-                e.currentTarget.style.borderColor = 'transparent';
-                e.currentTarget.style.color = '#fff';
-              }
-            }}
-            onMouseLeave={e => {
-              if (!editing) {
-                e.currentTarget.style.background = theme.bgAccent;
-                e.currentTarget.style.borderColor = theme.border;
-                e.currentTarget.style.color = theme.textMuted;
-              }
-            }}
-            style={{
-              background: editing ? 'linear-gradient(135deg, var(--primary), var(--primary-dark))' : theme.bgAccent,
-              border: `1px solid ${editing ? 'transparent' : theme.border}`,
-              borderRadius: 8, padding: '7px 16px',
-              color: editing ? '#fff' : theme.textMuted,
-              fontFamily: "'Space Mono',monospace", fontSize: 10, 
-              letterSpacing: 1, textTransform: 'uppercase',
-              cursor: 'pointer', transition: 'all 0.2s',
-            }}>
+            onMouseEnter={e => { if (!editing) { e.currentTarget.style.background='linear-gradient(135deg, var(--primary), var(--primary-dark))'; e.currentTarget.style.borderColor='transparent'; e.currentTarget.style.color='#fff'; }}}
+            onMouseLeave={e => { if (!editing) { e.currentTarget.style.background=theme.bgAccent; e.currentTarget.style.borderColor=theme.border; e.currentTarget.style.color=theme.textMuted; }}}
+            style={{ background: editing?'linear-gradient(135deg, var(--primary), var(--primary-dark))':theme.bgAccent, border:`1px solid ${editing?'transparent':theme.border}`, borderRadius:8, padding:'7px 16px', color:editing?'#fff':theme.textMuted, fontFamily:"'Space Mono',monospace", fontSize:10, letterSpacing:1, textTransform:'uppercase', cursor:'pointer', transition:'all 0.2s' }}>
             {saving ? 'Saving...' : editing ? 'Save Changes' : 'Edit Profile'}
           </button>
         </div>
@@ -129,7 +120,13 @@ export default function ProfilePage({ onNavigate }) {
           ].map(({ label, field, type }) => (
             <div key={field}>
               <label style={{ display:'block', color:theme.textMuted, fontSize:12, letterSpacing:2, textTransform:'uppercase', fontFamily:"'Space Mono',monospace", marginBottom:6 }}>{label}</label>
-              <input type={type} value={form[field]} onChange={e => setForm({ ...form, [field]:e.target.value })} disabled={!editing} style={inputStyle(editing)} />
+              <input
+                type={type}
+                value={form[field]}
+                onChange={e => setForm({ ...form, [field]: e.target.value })}
+                disabled={!editing}
+                style={inputStyle(editing)}
+              />
             </div>
           ))}
         </div>
@@ -147,13 +144,13 @@ export default function ProfilePage({ onNavigate }) {
           <span style={{ color:theme.text, fontWeight:700, fontSize:15 }}>Account Summary</span>
         </div>
         {[
-          ['Card / Serial No.',   user.serialNo       || '—'],
-          ['Mobile Number',       user.phone          || '—'],
-          ['Shop',                user.companyName    || '—'],
-          ['Loyalty Type',        user.loyaltyType    || '—'],
-          ['Lifetime Points',     `${(user.totalPoints||0).toLocaleString()} pts`],
-          ['Available Points',    `${(user.availablePoints||0).toLocaleString()} pts`],
-          ['Redeemed Points',     `${(user.redeemedPoints||0).toLocaleString()} pts`],
+          ['Card / Serial No.',  user.serialNo                            || '—'],
+          ['Mobile Number',      user.phone                               || '—'],
+          ['Shop',               user.companyName                         || '—'],
+          ['Loyalty Type',       user.loyaltyType                         || '—'],
+          ['Lifetime Points',    `${(user.totalPoints||0).toLocaleString()} pts`],
+          ['Available Points',   `${(user.availablePoints||0).toLocaleString()} pts`],
+          ['Redeemed Points',    `${(user.redeemedPoints||0).toLocaleString()} pts`],
         ].map(([lbl, val]) => (
           <div key={lbl} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 0', borderBottom:`1px solid ${theme.border}` }}>
             <span style={{ color:theme.textMuted, fontSize:13, fontFamily:"'Space Mono',monospace" }}>{lbl}</span>

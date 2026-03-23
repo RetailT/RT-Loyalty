@@ -3,12 +3,12 @@ import { useTheme, useCardHover } from '../context/ThemeContext';
 import useResponsive from '../hooks/useResponsive';
 
 function getSlug() {
-  const host  = window.location.hostname;
-  const parts = host.split('.');
+  const host = window.location.hostname;
+  const DEFAULT_SLUG = process.env.REACT_APP_DEFAULT_SHOP || 'retailtarget';
   if (host === 'localhost' || host === '127.0.0.1' || host.includes('vercel.app')) {
-    return new URLSearchParams(window.location.search).get('shop') || '';
+    return new URLSearchParams(window.location.search).get('shop') || DEFAULT_SLUG;
   }
-  return parts[0];
+  return host.replace(/^www\./, '');
 }
 
 function BenefitCard({ b }) {
@@ -30,18 +30,14 @@ export default function LandingPage({ onNavigate }) {
   useEffect(() => {
     const API  = process.env.REACT_APP_API_URL || 'http://localhost:10000';
     const slug = getSlug();
-    const headers = { 'Content-Type': 'application/json' };
-    if (slug) headers['X-Shop-Slug'] = slug;
+    const headers = { 'Content-Type': 'application/json', 'X-Shop-Slug': slug };
 
-    // ✅ cache: 'no-store' — always fetch fresh, no 304 cache issue
     fetch(`${API}/api/portal/company`, { headers, cache: 'no-store' })
       .then(r => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
       })
-      .then(d => {
-        if (d.success && d.company) setCompany(d.company);
-      })
+      .then(d => { if (d.success && d.company) setCompany(d.company); })
       .catch(err => console.warn('[LandingPage] company fetch failed:', err.message));
   }, []);
 
@@ -97,6 +93,43 @@ export default function LandingPage({ onNavigate }) {
         </div>
       </section>
 
+      {/* Company Info */}
+      {company && (
+        <section style={{ background: mode==='dark'?'#111':`color-mix(in srgb, var(--primary) 4%, white)`, borderTop:`1px solid color-mix(in srgb, var(--primary) 15%, transparent)`, borderBottom:`1px solid color-mix(in srgb, var(--primary) 15%, transparent)` }}>
+          <div style={{ maxWidth:700, margin:'0 auto', padding: isMobile?'20px 24px':'24px 48px' }}>
+            <div style={{ display:'flex', flexWrap:'wrap', alignItems:'center', justifyContent: isMobile?'flex-start':'space-between', gap:20 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+                <div style={{ width:44, height:44, background:'linear-gradient(135deg, var(--primary), var(--primary-dark))', borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center', fontSize:23, flexShrink:0 }}>🏪</div>
+                <div>
+                  <div style={{ color:theme.textMuted, fontSize:12, fontFamily:"'Space Mono',monospace", letterSpacing:2, textTransform:'uppercase', marginBottom:2 }}>Your Store</div>
+                  <div style={{ color:theme.text, fontWeight:700, fontSize: isMobile?16:18 }}>{company.name}</div>
+                </div>
+              </div>
+              {!isMobile && <div style={{ width:1, height:36, background:theme.border }} />}
+              {company.address && (
+                <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                  <div style={{ width:36, height:36, background:'color-mix(in srgb, var(--primary) 8%, transparent)', border:'1px solid color-mix(in srgb, var(--primary) 20%, transparent)', borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, flexShrink:0 }}>📍</div>
+                  <div>
+                    <div style={{ color:theme.textMuted, fontSize:12, fontFamily:"'Space Mono',monospace", letterSpacing:1, textTransform:'uppercase', marginBottom:2 }}>Address</div>
+                    <div style={{ color:theme.textSub, fontSize:15 }}>{company.address}</div>
+                  </div>
+                </div>
+              )}
+              {!isMobile && company.phone && <div style={{ width:1, height:36, background:theme.border }} />}
+              {company.phone && (
+                <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                  <div style={{ width:36, height:36, background:'color-mix(in srgb, var(--primary) 8%, transparent)', border:'1px solid color-mix(in srgb, var(--primary) 20%, transparent)', borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, flexShrink:0 }}>📞</div>
+                  <div>
+                    <div style={{ color:theme.textMuted, fontSize:12, fontFamily:"'Space Mono',monospace", letterSpacing:1, textTransform:'uppercase', marginBottom:2 }}>Hotline</div>
+                    <div style={{ color:theme.textSub, fontSize:15 }}>{company.phone}</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Benefits */}
       <section style={{ maxWidth:1100, margin:'0 auto', padding: isMobile?'48px 16px':'72px 32px' }}>
         <div style={{ textAlign:'center', marginBottom:40 }}>
@@ -107,52 +140,6 @@ export default function LandingPage({ onNavigate }) {
           {benefits.map(b => <BenefitCard key={b.title} b={b} />)}
         </div>
       </section>
-
-      {/* Company Info — original layout, phone added */}
-      {company && (
-        <section style={{ background: mode==='dark'?'#111':`color-mix(in srgb, var(--primary) 4%, white)`, borderTop:`1px solid color-mix(in srgb, var(--primary) 15%, transparent)`, borderBottom:`1px solid color-mix(in srgb, var(--primary) 15%, transparent)` }}>
-          <div style={{ maxWidth:700, margin:'0 auto', padding: isMobile?'20px 24px':'24px 48px' }}>
-            <div style={{ display:'flex', flexWrap:'wrap', alignItems:'center', justifyContent: isMobile?'flex-start':'space-between', gap:20 }}>
-
-              {/* Company name */}
-              <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-                <div style={{ width:44, height:44, background:'linear-gradient(135deg, var(--primary), var(--primary-dark))', borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center', fontSize:23, flexShrink:0 }}>🏪</div>
-                <div>
-                  <div style={{ color:theme.textMuted, fontSize:12, fontFamily:"'Space Mono',monospace", letterSpacing:2, textTransform:'uppercase', marginBottom:2 }}>Your Store</div>
-                  <div style={{ color:theme.text, fontWeight:700, fontSize: isMobile?16:18 }}>{company.name}</div>
-                </div>
-              </div>
-
-              {!isMobile && <div style={{ width:1, height:36, background:theme.border }} />}
-
-              {/* Address */}
-              {company.address && (
-                <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                  <div style={{ width:36, height:36, background:'color-mix(in srgb, var(--primary) 8%, transparent)', border:'1px solid color-mix(in srgb, var(--primary) 20%, transparent)', borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, flexShrink:0 }}>📍</div>
-                  <div>
-                    <div style={{ color:theme.textMuted, fontSize:12, fontFamily:"'Space Mono',monospace", letterSpacing:1, textTransform:'uppercase', marginBottom:2 }}>Address</div>
-                    <div style={{ color:theme.textSub, fontSize:15 }}>{company.address}</div>
-                  </div>
-                </div>
-              )}
-
-              {!isMobile && company.phone && <div style={{ width:1, height:36, background:theme.border }} />}
-
-              {/* ✅ Phone — now shows because backend returns correct PHONE column */}
-              {company.phone && (
-                <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                  <div style={{ width:36, height:36, background:'color-mix(in srgb, var(--primary) 8%, transparent)', border:'1px solid color-mix(in srgb, var(--primary) 20%, transparent)', borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, flexShrink:0 }}>📞</div>
-                  <div>
-                    <div style={{ color:theme.textMuted, fontSize:12, fontFamily:"'Space Mono',monospace", letterSpacing:1, textTransform:'uppercase', marginBottom:2 }}>Hotline</div>
-                    <div style={{ color:theme.textSub, fontSize:15 }}>{company.phone}</div>
-                  </div>
-                </div>
-              )}
-
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* CTA */}
       <section style={{ maxWidth:800, margin:'0 auto', padding: isMobile?'48px 16px':'72px 32px', textAlign:'center' }}>
