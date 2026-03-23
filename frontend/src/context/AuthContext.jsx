@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { getMe } from '../api';
 
 const AuthContext = createContext();
-const INACTIVITY_LIMIT = 30 * 60 * 1000;
+const INACTIVITY_LIMIT = 2 * 60 * 60 * 1000; // 2 hours in milliseconds
 
 export function AuthProvider({ children }) {
   const [user,    setUser]    = useState(null);

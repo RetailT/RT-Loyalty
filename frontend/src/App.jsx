@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ThemeProvider }          from './context/ThemeContext';
-import { AuthProvider, useAuth }  from './context/AuthContext';
-import { CompanyProvider }        from './context/CompanyContext';  // ← add
-import useResponsive              from './hooks/useResponsive';
+import { ThemeProvider }                    from './context/ThemeContext';
+import { AuthProvider, useAuth }            from './context/AuthContext';
+import { CompanyProvider, useCompany }      from './context/CompanyContext';
+import useResponsive                        from './hooks/useResponsive';
 
 import Navbar       from './components/Navbar';
 import Footer       from './components/Footer';
@@ -26,10 +26,36 @@ function getPageFromHash() {
   return valid.includes(hash) ? hash : 'landing';
 }
 
+function LoadingScreen() {
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{
+          width: 48, height: 48,
+          background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))',
+          borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 22, fontWeight: 900, color: '#fff', margin: '0 auto 16px',
+          fontFamily: "'Bebas Neue',sans-serif",
+        }}>RT</div>
+        <div style={{
+          width: 36, height: 36,
+          border: '3px solid color-mix(in srgb, var(--primary) 20%, transparent)',
+          borderTopColor: 'var(--primary)',
+          borderRadius: '50%',
+          animation: 'spin 0.8s linear infinite',
+          margin: '0 auto',
+        }} />
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      </div>
+    </div>
+  );
+}
+
 function AppContent() {
-  const [page, setPage]         = useState(getPageFromHash);
-  const { isLoggedIn, loading } = useAuth();
-  const { isMobile }            = useResponsive();
+  const [page, setPage]             = useState(getPageFromHash);
+  const { isLoggedIn, loading }     = useAuth();
+  const { loading: companyLoading } = useCompany();
+  const { isMobile }                = useResponsive();
 
   const navigate = useCallback((p) => {
     setPage(p);
@@ -55,29 +81,9 @@ function AppContent() {
     }
   }, [isLoggedIn, loading, page, navigate]);
 
-  if (loading) {
-    return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{
-            width: 48, height: 48,
-            background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))',
-            borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 22, fontWeight: 900, color: '#fff', margin: '0 auto 16px',
-            fontFamily: "'Bebas Neue',sans-serif"
-          }}>RT</div>
-          <div style={{
-            width: 36, height: 36,
-            border: '3px solid color-mix(in srgb, var(--primary) 20%, transparent)',
-            borderTopColor: 'var(--primary)',
-            borderRadius: '50%',
-            animation: 'spin 0.8s linear infinite',
-            margin: '0 auto'
-          }} />
-          <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-        </div>
-      </div>
-    );
+  // ── Untill Company colors load OR auth check, loading screen ──
+  if (companyLoading || loading) {
+    return <LoadingScreen />;
   }
 
   const renderPage = () => {
@@ -106,7 +112,7 @@ function AppContent() {
 
 export default function App() {
   return (
-    <CompanyProvider>          {/* ← add */}
+    <CompanyProvider>
       <ThemeProvider>
         <AuthProvider>
           <AppContent />

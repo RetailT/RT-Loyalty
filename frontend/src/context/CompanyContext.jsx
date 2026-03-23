@@ -44,6 +44,16 @@ export function CompanyProvider({ children }) {
   const [error,   setError]   = useState(null);
   const slug = getSlug();
 
+  // ── Cached color instant apply (no flicker) ──
+  useEffect(() => {
+    const cached = localStorage.getItem(`company_colors_${slug}`);
+    if (cached) {
+      try {
+        applyColors(JSON.parse(cached));
+      } catch {}
+    }
+  }, [slug]);
+
   useEffect(() => {
     fetch(`${API}/api/portal/company?shop=${slug}`)
       .then(r => r.json())
@@ -51,6 +61,8 @@ export function CompanyProvider({ children }) {
         if (d.success) {
           setCompany(d.company);
           applyColors(d.company);
+          // ── Cache save ──
+          localStorage.setItem(`company_colors_${slug}`, JSON.stringify(d.company));
         } else {
           setError(d.message || 'Shop not found');
           applyColors(DEFAULTS);
