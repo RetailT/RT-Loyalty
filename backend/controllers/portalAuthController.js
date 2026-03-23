@@ -4,7 +4,7 @@ const { sendOtpSMS } = require('../utils/sms');
 
 const JWT_SECRET  = process.env.JWT_SECRET || 'rt_loyalty_secret';
 const JWT_EXPIRES = '8h';
-const OTP_TTL_MIN = parseInt(process.env.OTP_EXPIRES_MINUTES) || 10;
+const OTP_TTL_MIN = parseInt(process.env.OTP_EXPIRES_MINUTES) || 1;
 const IS_DEV      = process.env.NODE_ENV !== 'production';
 
 const OTP_RATE_LIMIT_COUNT = 2;

@@ -87,7 +87,7 @@ app.put( '/api/auth/change-password', protect, authController.changePassword);
 app.get(   '/api/customers',              protect, customerController.getAllCustomers);
 app.get(   '/api/customers/scan/:qrCode', protect, customerController.scanQR);
 app.get(   '/api/customers/:id',          protect, customerController.getCustomerById);
-app.post(  '/api/customers',             protect, customerController.createCustomer);
+app.post(  '/api/customers',              protect, customerController.createCustomer);
 app.put(   '/api/customers/:id',          protect, customerController.updateCustomer);
 app.delete('/api/customers/:id',          protect, adminOnly, customerController.deleteCustomer);
 app.post(  '/api/customers/:id/points',   protect, customerController.updatePoints);
