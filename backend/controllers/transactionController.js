@@ -1,11 +1,10 @@
-const { getLoyaltyPool, sql } = require('../config/userdb');
-const { getPool, sql: mainSql } = require('../config/database');
+const { getPosbackPool, sql } = require('../config/userdb');
 
-// GET /api/transactions?from=&to=&custid=&transtype=&page=1&limit=20
+// GET /api/transactions?from=&to=&serialno=&transtype=&page=1&limit=20
 const getAllTransactions = async (req, res) => {
   try {
-    const pool = await getLoyaltyPool();
-    const { from, to, custid, transtype, page = 1, limit = 20 } = req.query;
+    const pool = await getPosbackPool();
+    const { from, to, serialno, transtype, page = 1, limit = 20 } = req.query;
     const start = (parseInt(page) - 1) * parseInt(limit) + 1;
     const end   = (parseInt(page) - 1) * parseInt(limit) + parseInt(limit);
 
@@ -14,17 +13,18 @@ const getAllTransactions = async (req, res) => {
       .input('end',   sql.Int, end);
 
     const filters = [];
+
     if (from && to) {
-      filters.push('T.TX_DATE BETWEEN @from AND @to');
+      filters.push('T.INVOICE_DATE BETWEEN @from AND @to');
       req2.input('from', sql.Date, from);
       req2.input('to',   sql.Date, to);
     }
-    if (custid) {
-      filters.push('T.CUSTOMER_ID = @custid');
-      req2.input('custid', sql.Numeric, custid);
+    if (serialno) {
+      filters.push('T.SERIALNO = @serialno');
+      req2.input('serialno', sql.NVarChar, serialno);
     }
     if (transtype) {
-      filters.push('T.TYPE = @transtype');
+      filters.push("LTRIM(RTRIM(T.ID)) = @transtype");
       req2.input('transtype', sql.NVarChar, transtype);
     }
 
@@ -33,12 +33,25 @@ const getAllTransactions = async (req, res) => {
     const result = await req2.query(`
       SELECT * FROM (
         SELECT
-          ROW_NUMBER() OVER (ORDER BY T.TX_DATE DESC, T.CREATED_AT DESC) AS RowNum,
-          T.IDX, T.TX_DATE, T.CUSTOMER_ID, T.POINTS, T.TYPE,
-          T.BILL_AMOUNT, T.DESCRIPTION,
-          C.NAME AS CUSTNAME, C.PHONE AS MOBILE, C.MEMBERSHIP_ID
-        FROM tb_TRANSACTIONS T
-        LEFT JOIN tb_CUSTOMERS C ON C.IDX = T.CUSTOMER_ID
+          ROW_NUMBER() OVER (ORDER BY T.INVOICE_DATE DESC, T.IDX DESC) AS RowNum,
+          T.IDX,
+          T.SERIALNO,
+          T.CUSTOMER_NAME,
+          LTRIM(RTRIM(T.ID))           AS ID,
+          T.RATE,
+          T.AMOUNT,
+          T.INVOICENO,
+          T.INVOICE_DATE,
+          T.INVOICE_TIME,
+          T.COMPANY_NAME,
+          T.LOYALTY_TYPE,
+          T.MOBILENO,
+          C.CUSTDISPLAY_NAME           AS CUSTNAME,
+          C.MOBILENO                   AS MOBILE
+        FROM dbo.tb_LOYALTY_TRANSACTION T
+        LEFT JOIN dbo.tb_LOYALTYCUSTOMER_MAIN C
+          ON LTRIM(RTRIM(C.SERIALNO)) = LTRIM(RTRIM(T.SERIALNO))
+         AND LTRIM(RTRIM(C.COMPANY_CODE)) = LTRIM(RTRIM(T.COMPANY_CODE))
         ${where}
       ) AS Paged
       WHERE RowNum BETWEEN @start AND @end
@@ -54,54 +67,105 @@ const getAllTransactions = async (req, res) => {
 // GET /api/transactions/stats
 const getStats = async (req, res) => {
   try {
-    const loyaltyPool = await getLoyaltyPool();
-    const posPool     = await getPool();
+    const posPool = await getPosbackPool();
 
-    const loyaltyStats = await loyaltyPool.request().query(`
+    const statsRes = await posPool.request().query(`
       SELECT
-        (SELECT COUNT(*)             FROM tb_CUSTOMERS WHERE STATUS = 'active')                         AS totalCustomers,
-        (SELECT COUNT(*)             FROM tb_CUSTOMERS WHERE JOIN_DATE >= DATEADD(DAY,-30,GETDATE()))   AS newThisMonth,
-        (SELECT ISNULL(SUM(AVAILABLE_POINTS),0) FROM tb_CUSTOMERS WHERE STATUS = 'active')             AS totalPointsOutstanding,
-        (SELECT ISNULL(SUM(TOTAL_POINTS),0)     FROM tb_CUSTOMERS WHERE STATUS = 'active')             AS totalPointsEverEarned,
-        (SELECT COUNT(*)             FROM tb_TRANSACTIONS WHERE TX_DATE >= DATEADD(DAY,-30,GETDATE()))  AS transactionsThisMonth,
-        (SELECT COUNT(*)             FROM tb_TRANSACTIONS WHERE TYPE = 'earn'   AND TX_DATE >= DATEADD(DAY,-30,GETDATE())) AS earnsThisMonth,
-        (SELECT COUNT(*)             FROM tb_TRANSACTIONS WHERE TYPE = 'redeem' AND TX_DATE >= DATEADD(DAY,-30,GETDATE())) AS reedemsThisMonth
+        -- Total unique loyalty customers
+        (SELECT COUNT(DISTINCT SERIALNO)
+         FROM dbo.tb_LOYALTYCUSTOMER_MAIN
+         WHERE LTRIM(RTRIM(CUSTOMER_LOCK)) <> 'T')                              AS totalCustomers,
+
+        -- New customers this month
+        (SELECT COUNT(*)
+         FROM dbo.tb_LOYALTYCUSTOMER_MAIN
+         WHERE CRDATE >= DATEADD(DAY,-30,GETDATE()))                            AS newThisMonth,
+
+        -- Transactions this month
+        (SELECT COUNT(*)
+         FROM dbo.tb_LOYALTY_TRANSACTION
+         WHERE INVOICE_DATE >= DATEADD(DAY,-30,GETDATE()))                      AS transactionsThisMonth,
+
+        -- EN transactions this month
+        (SELECT COUNT(*)
+         FROM dbo.tb_LOYALTY_TRANSACTION
+         WHERE LTRIM(RTRIM(ID))='EN'
+           AND INVOICE_DATE >= DATEADD(DAY,-30,GETDATE()))                      AS earnsThisMonth,
+
+        -- RM transactions this month
+        (SELECT COUNT(*)
+         FROM dbo.tb_LOYALTY_TRANSACTION
+         WHERE LTRIM(RTRIM(ID))='RM'
+           AND INVOICE_DATE >= DATEADD(DAY,-30,GETDATE()))                      AS reedemsThisMonth,
+
+        -- Total points earned all time
+        (SELECT ISNULL(SUM(RATE),0)
+         FROM dbo.tb_LOYALTY_TRANSACTION
+         WHERE LTRIM(RTRIM(ID))='EN')                                           AS totalPointsEverEarned,
+
+        -- Total points outstanding (earned - redeemed)
+        (SELECT ISNULL(SUM(CASE
+            WHEN LTRIM(RTRIM(ID))='EN' THEN RATE
+            WHEN LTRIM(RTRIM(ID))='RM' THEN -ABS(RATE)
+            ELSE 0
+          END),0)
+         FROM dbo.tb_LOYALTY_TRANSACTION)                                       AS totalPointsOutstanding
     `);
 
-    const salesStats = await posPool.request().query(`
+    // Sales stats from tb_LOYALTY_TRANSACTION AMOUNT field
+    const salesRes = await posPool.request().query(`
       SELECT
-        ISNULL(SUM(NETAMT), 0) AS totalSales30Days,
-        COUNT(*)               AS totalBills30Days,
-        ISNULL(AVG(NETAMT), 0) AS avgBillValue
-      FROM tb_SALES
-      WHERE BILLDATE >= DATEADD(DAY,-30,GETDATE())
+        ISNULL(SUM(AMOUNT), 0)   AS totalSales30Days,
+        COUNT(*)                 AS totalBills30Days,
+        ISNULL(AVG(AMOUNT), 0)   AS avgBillValue
+      FROM dbo.tb_LOYALTY_TRANSACTION
+      WHERE LTRIM(RTRIM(ID)) = 'EN'
+        AND INVOICE_DATE >= DATEADD(DAY,-30,GETDATE())
     `);
 
-    const trend = await posPool.request().query(`
+    // Daily trend (last 7 days)
+    const trendRes = await posPool.request().query(`
       SELECT
-        CONVERT(DATE, BILLDATE) AS saleDate,
-        COUNT(*)                AS bills,
-        ISNULL(SUM(NETAMT),0)   AS total
-      FROM tb_SALES
-      WHERE BILLDATE >= DATEADD(DAY,-7,GETDATE())
-      GROUP BY CONVERT(DATE, BILLDATE)
+        CAST(INVOICE_DATE AS DATE)  AS saleDate,
+        COUNT(*)                    AS bills,
+        ISNULL(SUM(AMOUNT), 0)      AS total
+      FROM dbo.tb_LOYALTY_TRANSACTION
+      WHERE LTRIM(RTRIM(ID)) = 'EN'
+        AND INVOICE_DATE >= DATEADD(DAY,-7,GETDATE())
+      GROUP BY CAST(INVOICE_DATE AS DATE)
       ORDER BY saleDate
     `);
 
-    const topCustomers = await loyaltyPool.request().query(`
-      SELECT TOP 5 NAME, PHONE, AVAILABLE_POINTS, TOTAL_POINTS, MEMBERSHIP_TIER
-      FROM tb_CUSTOMERS
-      WHERE STATUS = 'active'
+    // Top customers by available points
+    const topRes = await posPool.request().query(`
+      SELECT TOP 5
+        LTRIM(RTRIM(SERIALNO))       AS SERIALNO,
+        CUSTDISPLAY_NAME             AS NAME,
+        MOBILENO                     AS PHONE,
+        SUM(CASE
+          WHEN LTRIM(RTRIM(ID))='EN' THEN RATE
+          WHEN LTRIM(RTRIM(ID))='RM' THEN -ABS(RATE)
+          ELSE 0
+        END)                         AS AVAILABLE_POINTS,
+        SUM(CASE WHEN LTRIM(RTRIM(ID))='EN' THEN RATE ELSE 0 END) AS TOTAL_POINTS,
+        LTRIM(RTRIM(LOYALTY_TYPE))   AS MEMBERSHIP_TIER
+      FROM dbo.tb_LOYALTY_TRANSACTION T
+      LEFT JOIN dbo.tb_LOYALTYCUSTOMER_MAIN C
+        ON LTRIM(RTRIM(C.SERIALNO))      = LTRIM(RTRIM(T.SERIALNO))
+       AND LTRIM(RTRIM(C.COMPANY_CODE))  = LTRIM(RTRIM(T.COMPANY_CODE))
+      GROUP BY LTRIM(RTRIM(T.SERIALNO)), CUSTDISPLAY_NAME, MOBILENO, LTRIM(RTRIM(LOYALTY_TYPE))
       ORDER BY AVAILABLE_POINTS DESC
     `);
 
     res.json({
       success: true,
       data: {
-        loyalty:      loyaltyStats.recordset[0],
-        sales:        salesStats.recordset[0],
-        dailyTrend:   trend.recordset,
-        topCustomers: topCustomers.recordset,
+        loyalty: {
+          ...statsRes.recordset[0],
+        },
+        sales:        salesRes.recordset[0],
+        dailyTrend:   trendRes.recordset,
+        topCustomers: topRes.recordset,
       },
     });
   } catch (err) {
