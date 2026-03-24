@@ -9,7 +9,6 @@ function PromotionCard({ promo, theme, mode }) {
   const isPD  = promo.type === 'PD';
   const isPDP = promo.type === 'PDP';
 
-  // Badge label
   const badge = isPD
     ? `Rs. ${promo.discountAmt.toFixed(2)} OFF`
     : isPDP
@@ -92,17 +91,6 @@ function PromotionCard({ promo, theme, mode }) {
           </div>
         )}
 
-        {/* Min qty */}
-        {/* {promo.minQty > 0 && (
-          <div style={{
-            marginTop: 8,
-            color: theme.textFaint, fontSize: 11,
-            fontFamily: "'Space Mono',monospace",
-          }}>
-            Min qty: {promo.minQty}
-          </div>
-        )} */}
-
         {/* Date range */}
         {(promo.dateFrom || promo.dateTo) && (
           <div style={{
@@ -136,6 +124,7 @@ function TabBtn({ label, count, active, onClick, theme }) {
         display: 'flex', alignItems: 'center', gap: 7,
         padding: '8px 18px',
         borderRadius: 10,
+        flexShrink: 0,                   /* ← never shrink inside scroll row */
         border: active
           ? '1px solid color-mix(in srgb, var(--primary) 40%, transparent)'
           : `1px solid ${theme.border}`,
@@ -174,7 +163,6 @@ export default function PromotionsPage() {
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState('');
   const [search,  setSearch]  = useState('');
-  // 'all' | 'PD' | 'PDP'
   const [tab, setTab]         = useState('all');
 
   useEffect(() => {
@@ -185,7 +173,6 @@ export default function PromotionsPage() {
       .finally(() => setLoading(false));
   }, [token]);
 
-  // Filter by search
   const searched = promos.filter(p => {
     const q = search.toLowerCase();
     return (
@@ -237,12 +224,23 @@ export default function PromotionsPage() {
         />
       </div>
 
-      {/* Tabs */}
+      {/* Tabs — horizontally scrollable */}
       {!loading && !error && (
-        <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
-          <TabBtn label="All"        count={countAll} active={tab === 'all'} onClick={() => setTab('all')} theme={theme} />
+        <div style={{
+          display: 'flex',
+          gap: 8,
+          marginBottom: 20,
+          overflowX: 'auto',           /* ← horizontal scroll */
+          flexWrap: 'nowrap',          /* ← keep all tabs on one line */
+          WebkitOverflowScrolling: 'touch',
+          /* hide scrollbar visually but keep it functional */
+          scrollbarWidth: 'none',      /* Firefox */
+          msOverflowStyle: 'none',     /* IE/Edge */
+          paddingBottom: 2,            /* prevent clipping of button shadows */
+        }}>
+          <TabBtn label="All"             count={countAll} active={tab === 'all'} onClick={() => setTab('all')} theme={theme} />
           <TabBtn label="Discount Amount" count={countPD}  active={tab === 'PD'}  onClick={() => setTab('PD')}  theme={theme} />
-          <TabBtn label="% Discount"    count={countPDP} active={tab === 'PDP'} onClick={() => setTab('PDP')} theme={theme} />
+          <TabBtn label="% Discount"      count={countPDP} active={tab === 'PDP'} onClick={() => setTab('PDP')} theme={theme} />
         </div>
       )}
 
