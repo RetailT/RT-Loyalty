@@ -127,7 +127,7 @@ exports.getTransactions = async (req, res) => {
         FROM (
           SELECT *, ROW_NUMBER() OVER (ORDER BY INVOICE_DATE DESC, IDX DESC) AS RN
           FROM dbo.tb_LOYALTY_TRANSACTION
-          WHERE SERIALNO = @sno AND COMPANY_CODE = @code AND SMS = 'T'
+          WHERE SERIALNO = @sno AND COMPANY_CODE = @code
           ${typeFilter}
         ) AS T
         WHERE RN > @offset AND RN <= (@offset + @limit)
