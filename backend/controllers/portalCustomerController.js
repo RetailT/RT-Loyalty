@@ -260,7 +260,6 @@ exports.redeemReward = async (req, res) => {
         .query(`UPDATE dbo.tb_REWARDS SET STOCK = STOCK - 1 WHERE IDX = @rid`);
     }
 
-    // Insert RM transaction (positive value — getPointsSummary uses -ABS(RATE))
     await posPool.request()
       .input('sno',  sql.NVarChar, serialNo)
       .input('code', sql.Char,     companyCode)
@@ -284,6 +283,17 @@ exports.redeemReward = async (req, res) => {
 };
 
 /* ── getPromotions ───────────────────────────────────────── */
+/*
+ * TYPE column in tb_PROMOTION:
+ *   'PD '  → Normal amount discount  — PD1L = Rs. amount off  (e.g. 20.00)
+ *   'PDP'  → Percentage discount     — DPD_DISCPRC = % off    (e.g. 15.00)
+ *
+ * Price source: tb_PRODUCT.SCALEPRICE (joined on PRODUCT_CODE)
+ * NOT UNIT_PRICE from tb_PROMOTION (that column stores original unit price
+ * at time of promo creation and may be stale).
+ *
+ * PD1L rule: PDQ1L = min qty threshold, PD1L = discount VALUE at that tier.
+ */
 exports.getPromotions = async (req, res) => {
   try {
     const { companyCode } = req.customer;
@@ -293,29 +303,84 @@ exports.getPromotions = async (req, res) => {
       .input('code', sql.Char, companyCode)
       .query(`
         SELECT
-          p.IDX          AS idx,
-          p.PRODUCT_CODE AS productCode,
-          COALESCE(NULLIF(LTRIM(RTRIM(pr.PRODUCT_NAMELONG)),''), LTRIM(RTRIM(pr.PRODUCT_NAMESHORT))) AS productName,
-          p.UNIT_PRICE   AS unitPrice,
-          p.TYPE         AS type,
-          p.DPD_DATEFROM AS dateFrom,
-          p.DPD_DATETO   AS dateTo,
-          p.DPD_DISCPRC  AS discountPrc,
-          p.PD1          AS discountAmt,
-          p.PROMOTIONMODE AS promotionMode
+          p.IDX                                                        AS idx,
+          LTRIM(RTRIM(p.PRODUCT_CODE))                                 AS productCode,
+          COALESCE(
+            NULLIF(LTRIM(RTRIM(pr.PRODUCT_NAMELONG)),  ''),
+            NULLIF(LTRIM(RTRIM(pr.PRODUCT_NAMESHORT)), ''),
+            LTRIM(RTRIM(p.PRODUCT_CODE))
+          )                                                            AS productName,
+
+          -- Price from tb_PRODUCT.SCALEPRICE (NOT tb_PROMOTION.UNIT_PRICE)
+          ISNULL(pr.SCALEPRICE, 0)                                     AS unitPrice,
+
+          -- TYPE trim: stored as 'PD        ' with trailing spaces
+          LTRIM(RTRIM(p.TYPE))                                         AS type,
+
+          -- PD1L: used for BOTH PD (Rs. off) and PDP (% off)
+          ISNULL(p.PD1L, 0)                                            AS discountValue,
+          ISNULL(p.PDQ1L, 0)                                           AS minQty,
+
+          p.DPD_DATEFROM                                               AS dateFrom,
+          p.DPD_DATETO                                                  AS dateTo
+
         FROM dbo.tb_PROMOTION p
-        LEFT JOIN dbo.tb_PRODUCT pr ON pr.PRODUCT_CODE = p.PRODUCT_CODE
+        LEFT JOIN dbo.tb_PRODUCT pr
+          ON LTRIM(RTRIM(pr.PRODUCT_CODE)) = LTRIM(RTRIM(p.PRODUCT_CODE))
+
         WHERE LTRIM(RTRIM(p.COMPANY_CODE)) = LTRIM(RTRIM(@code))
-          AND p.UNIT_PRICE > 0
-          AND (p.PD1 > 0 OR p.DPD_DISCPRC > 0)
+
+          -- Active flag
+          AND LTRIM(RTRIM(p.DATE_ACTIVE)) = 'T'
+
+          -- Must have a loyalty discount value in at least one column
+          AND ISNULL(p.PD1L, 0) > 0
+
+          -- Exclude expired (1900-01-01 = no expiry sentinel)
           AND (
-            p.DPD_DATETO = '1900-01-01 00:00:00.000'
-            OR p.DPD_DATETO >= CAST(GETDATE() AS DATE)
+            p.DPD_DATETO IS NULL
+            OR YEAR(p.DPD_DATETO) <= 1900
+            OR CAST(p.DPD_DATETO AS DATE) >= CAST(GETDATE() AS DATE)
           )
+
         ORDER BY p.IDX DESC
       `);
 
-    res.json({ success: true, data: result.recordset });
+    const data = result.recordset.map(row => {
+      const unitPrice     = parseFloat(row.unitPrice     || 0);
+      const discountValue = parseFloat(row.discountValue || 0);  // PD1L — used for both types
+      const type          = (row.type || '').trim();
+
+      // PD  type: PD1L = Rs. amount off   → finalPrice = unitPrice - PD1L
+      // PDP type: PD1L = % value          → finalPrice = unitPrice - (unitPrice * PD1L / 100)
+      let finalPrice  = unitPrice;
+      let discountAmt = 0;
+      let discountPrc = 0;
+
+      if (type === 'PD') {
+        discountAmt = discountValue;
+        finalPrice  = unitPrice - discountAmt;
+      } else if (type === 'PDP') {
+        discountPrc = discountValue;
+        finalPrice  = unitPrice - (unitPrice * discountPrc / 100);
+      }
+
+      return {
+        idx:         row.idx,
+        productCode: row.productCode,
+        productName: row.productName,
+        type,                                  // 'PD' | 'PDP'
+        unitPrice,                             // SCALEPRICE from tb_PRODUCT
+        discountAmt,                           // Rs. off  — PD  type
+        discountPrc,                           // % off    — PDP type
+        finalPrice:  Math.max(0, finalPrice),
+        minQty:      parseFloat(row.minQty || 0),
+        dateFrom:    row.dateFrom || null,
+        dateTo:      row.dateTo   || null,
+      };
+    });
+
+    res.json({ success: true, data });
   } catch (err) {
     console.error('[getPromotions]', err.message);
     res.status(500).json({ success: false, message: 'Server error.', error: err.message });

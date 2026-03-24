@@ -50,7 +50,7 @@ async function sendSMS(to, msg) {
 }
 
 async function sendOtpSMS(phone, otp, shopName) {
-  const msg = `${otp} is your RT Loyalty OTP for ${shopName}. Valid for 5 minutes. Do not share.`;
+  const msg = `${otp} is your RT Loyalty OTP for ${shopName}. Valid for 1 minute. Do not share.`;
   return sendSMS(phone, msg);
 }
 
