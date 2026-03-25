@@ -37,9 +37,40 @@ async function getPointsSummary(posPool, serialNo, posbackCode) {
   };
 }
 
-function shapeCustomer(row, points) {
+/**
+ * Get LOYALTY_START prefix from tb_LOYALTYMAIN for the given loyalty type.
+ * QR value = LOYALTY_START + SERIALNO  (e.g. ';0000000015')
+ */
+async function getLoyaltyStart(posPool, loyaltyType, companyCode) {
+  try {
+    // Match by LOYALTY_TYPE string OR by IDX (some records store numeric IDX as loyalty type)
+    const r = await posPool.request()
+      .input('ltype', sql.NVarChar, (loyaltyType || '').trim())
+      .query(`
+        SELECT TOP 1 LTRIM(RTRIM(LOYALTY_START)) AS LOYALTY_START
+        FROM dbo.tb_LOYALTYMAIN
+        WHERE LTRIM(RTRIM(LOYALTY_TYPE)) = LTRIM(RTRIM(@ltype))
+           OR CAST(IDX AS NVARCHAR) = LTRIM(RTRIM(@ltype))
+      `);
+    const ls = r.recordset[0] ? r.recordset[0].LOYALTY_START : null;
+    return (ls !== null && ls !== undefined) ? ls : '';
+  } catch (err) {
+    console.error('[getLoyaltyStart]', err.message);
+    return '';
+  }
+}
+
+function shapeCustomer(row, points, loyaltyStart) {
+  const serialNo = row.SERIALNO;
+  // QR value = prefix + serialNo  (e.g. ';' + '0000000015' = ';0000000015')
+  // loyaltyStart can be ';' which is truthy — always concat if defined
+  const qrValue  = (loyaltyStart !== undefined && loyaltyStart !== null)
+    ? `${loyaltyStart}${serialNo}`
+    : serialNo;
+
   return {
-    serialNo:    row.SERIALNO,
+    serialNo,
+    qrValue,                          // ← used for QR code generation
     name:        row.CUSTDISPLAY_NAME || row.CUSTFULL_NAME,
     email:       row.EMAIL            || '',
     phone:       row.MOBILENO,
@@ -98,7 +129,6 @@ exports.sendOtp = async (req, res) => {
     const input   = phone.trim();
     const posPool = req.shopPool;
 
-    // ── Step 1: Find customer ──────────────────────────────
     const found = await posPool.request()
       .input('input', sql.NVarChar, input)
       .input('code',  sql.Char,     POSBACK_CODE)
@@ -138,7 +168,6 @@ exports.sendOtp = async (req, res) => {
       });
     }
 
-    // ── Step 2: Rate limit check ───────────────────────────
     const loyPool = await getLoyaltyPool();
 
     const rateCheck = await loyPool.request()
@@ -161,11 +190,9 @@ exports.sendOtp = async (req, res) => {
       });
     }
 
-    // ── Step 3: Generate OTP ───────────────────────────────
     const otp     = String(Math.floor(100000 + Math.random() * 900000));
     const expires = new Date(Date.now() + OTP_TTL_MIN * 60000);
 
-    // ── Step 4: DELETE + INSERT (MERGE first time miss fix) ─
     await loyPool.request()
       .input('phone', sql.NVarChar, mobileNo)
       .input('code',  sql.NVarChar, POSBACK_CODE)
@@ -182,7 +209,6 @@ exports.sendOtp = async (req, res) => {
         VALUES (@email, @phone, @code, @otp, @expires, GETDATE())
       `);
 
-    // ── Step 5: Log action ─────────────────────────────────
     logAction(posPool, {
       username:     mobileNo,
       customerName: custName,
@@ -194,12 +220,10 @@ exports.sendOtp = async (req, res) => {
       setLogout:    false,
     });
 
-    // ── Step 6: Send SMS — awaited (Vercel fix) ────────────
     try {
       await sendOtpSMS(mobileNo, otp, shop);
     } catch (smsErr) {
       console.error('[sendOtp] SMS error:', smsErr.message);
-      // SMS fail වුණත් OTP response return කරනවා
     }
 
     const hasEmail    = !!(custRow.EMAIL || '').trim();
@@ -294,9 +318,10 @@ exports.verifyOtp = async (req, res) => {
     if (!cust.recordset.length)
       return res.status(404).json({ success: false, message: 'Customer not found.' });
 
-    const row      = cust.recordset[0];
-    const points   = await getPointsSummary(posPool, row.SERIALNO, POSBACK_CODE);
-    const customer = shapeCustomer(row, points);
+    const row          = cust.recordset[0];
+    const points       = await getPointsSummary(posPool, row.SERIALNO, POSBACK_CODE);
+    const loyaltyStart = await getLoyaltyStart(posPool, row.LOYALTY_TYPE, POSBACK_CODE);
+    const customer     = shapeCustomer(row, points, loyaltyStart);
 
     const token = jwt.sign(
       {
@@ -356,9 +381,10 @@ exports.qrLogin = async (req, res) => {
     if (!result.recordset.length)
       return res.status(404).json({ success: false, message: 'QR code not recognized at ' + COMPANY_NAME + '.' });
 
-    const row      = result.recordset[0];
-    const points   = await getPointsSummary(posPool, row.SERIALNO, POSBACK_CODE);
-    const customer = shapeCustomer(row, points);
+    const row          = result.recordset[0];
+    const points       = await getPointsSummary(posPool, row.SERIALNO, POSBACK_CODE);
+    const loyaltyStart = await getLoyaltyStart(posPool, row.LOYALTY_TYPE, POSBACK_CODE);
+    const customer     = shapeCustomer(row, points, loyaltyStart);
 
     const token = jwt.sign(
       {

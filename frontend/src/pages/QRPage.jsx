@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import useResponsive from '../hooks/useResponsive';
-import { fs, fh, fm } from '../utils/fontScale';
 
 function QRDisplay({ value, size = 220 }) {
   const canvasRef = useRef(null);
@@ -50,6 +49,10 @@ export default function QRPage() {
 
   if (!user) return null;
 
+  // QR value = LOYALTY_START prefix + SERIALNO (e.g. ";0000000015")
+  // Falls back to serialNo if qrValue not set (older sessions)
+  const qrValue = user.qrValue || user.serialNo;
+
   return (
     <div style={{ maxWidth:500, margin:'0 auto', padding: isMobile?'32px 16px 100px':'48px 32px 60px' }}>
 
@@ -76,10 +79,10 @@ export default function QRPage() {
           <span style={{ color:'var(--primary)', fontSize:13, fontFamily:"'Space Mono',monospace", letterSpacing:1, textTransform:'uppercase' }}>{user.companyName}</span>
         </div>
 
-        {/* QR */}
+        {/* QR — uses qrValue (LOYALTY_START + serialNo) */}
         <div style={{ display:'flex', justifyContent:'center', marginBottom:24 }}>
           <div style={{ padding:16, background:'#fff', borderRadius:20, boxShadow:'0 4px 20px rgba(0,0,0,0.1)' }}>
-            <QRDisplay value={user.serialNo} size={isMobile ? 300 : 360} />
+            <QRDisplay value={qrValue} size={isMobile ? 300 : 360} />
           </div>
         </div>
 
@@ -88,7 +91,7 @@ export default function QRPage() {
           {user.name}
         </div>
 
-        {/* Serial No */}
+        {/* Serial No — show human-readable serialNo (not the prefixed qrValue) */}
         <div style={{ color:theme.textMuted, fontSize:14, fontFamily:"'Space Mono',monospace", letterSpacing:2, marginBottom:16 }}>
           {user.serialNo}
         </div>
@@ -127,7 +130,7 @@ export default function QRPage() {
         </div>
       </div>
 
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      <style>{"@keyframes spin{to{transform:rotate(360deg)}}"}</style>
     </div>
   );
 }

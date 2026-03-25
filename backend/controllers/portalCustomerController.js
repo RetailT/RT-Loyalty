@@ -25,6 +25,25 @@ async function getPointsSummary(posPool, serialNo, posbackCode) {
   };
 }
 
+/* ── getLoyaltyStart ─────────────────────────────────────── */
+async function getLoyaltyStart(posPool, loyaltyType) {
+  try {
+    const r = await posPool.request()
+      .input('ltype', sql.NVarChar, (loyaltyType || '').trim())
+      .query(`
+        SELECT TOP 1 LTRIM(RTRIM(LOYALTY_START)) AS LOYALTY_START
+        FROM dbo.tb_LOYALTYMAIN
+        WHERE LTRIM(RTRIM(LOYALTY_TYPE)) = LTRIM(RTRIM(@ltype))
+           OR CAST(IDX AS NVARCHAR)      = LTRIM(RTRIM(@ltype))
+      `);
+    const ls = r.recordset[0] ? r.recordset[0].LOYALTY_START : null;
+    return (ls !== null && ls !== undefined) ? ls : '';
+  } catch (err) {
+    console.error('[getLoyaltyStart]', err.message);
+    return '';
+  }
+}
+
 /* ── getMe ───────────────────────────────────────────────── */
 exports.getMe = async (req, res) => {
   try {
@@ -44,13 +63,16 @@ exports.getMe = async (req, res) => {
     if (!result.recordset.length)
       return res.status(404).json({ success: false, message: 'Customer not found.' });
 
-    const row    = result.recordset[0];
-    const points = await getPointsSummary(posPool, serialNo, companyCode);
+    const row          = result.recordset[0];
+    const points       = await getPointsSummary(posPool, serialNo, companyCode);
+    const loyaltyStart = await getLoyaltyStart(posPool, row.LOYALTY_TYPE);
+    const qrValue      = `${loyaltyStart}${row.SERIALNO}`;
 
     res.json({
       success: true,
       customer: {
         serialNo:    row.SERIALNO,
+        qrValue,                          // LOYALTY_START + SERIALNO
         name:        row.CUSTDISPLAY_NAME || row.CUSTFULL_NAME,
         email:       row.EMAIL            || '',
         phone:       row.MOBILENO,

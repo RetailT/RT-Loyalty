@@ -49,9 +49,15 @@ export function AuthProvider({ children }) {
     if (!token) return;
     const events = ['mousemove','mousedown','keydown','touchstart','scroll','click'];
     events.forEach(e => window.addEventListener(e, resetTimer, { passive: true }));
+
     const lastActive = parseInt(localStorage.getItem('loyalty_last_active') || '0');
-    if (lastActive && Date.now() - lastActive > INACTIVITY_LIMIT) { logout(true); return; }
+    // Refresh grace period: 30 seconds page load
+    const timeSinceActive = Date.now() - lastActive;
+    if (lastActive && timeSinceActive > INACTIVITY_LIMIT + 30000) {
+      logout(true); return;
+    }
     resetTimer();
+
     return () => {
       events.forEach(e => window.removeEventListener(e, resetTimer));
       if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
@@ -59,15 +65,39 @@ export function AuthProvider({ children }) {
   }, [token, resetTimer, logout]);
 
   const fetchUser = useCallback(async (tk) => {
-    try {
-      const res = await getMe(tk);
-      if (res.success) setUser(res.customer);
-      else throw new Error('failed');
-    } catch {
+  try {
+    const res = await getMe(tk);
+    if (res.success) setUser(res.customer);
+    else {
+      // when API reject logout (401/403)
       localStorage.removeItem('loyalty_token');
       setToken(null); setUser(null);
-    } finally { setLoading(false); }
-  }, []);
+    }
+  } catch (err) {
+    // Network error / timeout — token not removed and user protected
+    console.warn('[fetchUser] network error, keeping session:', err.message);
+    // Token save, if user null, token decode and get basic info
+    try {
+      const payload = JSON.parse(atob(tk.split('.')[1]));
+      setUser({
+        serialNo:    payload.serialNo,
+        name:        payload.name,
+        phone:       payload.phone,
+        companyCode: payload.companyCode,
+        companyName: payload.companyName,
+        availablePoints: 0,
+        totalPoints: 0,
+        redeemedPoints: 0,
+      });
+    } catch {
+      // If Token decode fails, logout
+      localStorage.removeItem('loyalty_token');
+      setToken(null); setUser(null);
+    }
+  } finally {
+    setLoading(false);
+  }
+}, []);
 
   useEffect(() => {
     if (token) fetchUser(token);
