@@ -4,7 +4,6 @@ import { useTheme } from '../context/ThemeContext';
 import useResponsive from '../hooks/useResponsive';
 import { getPromotions } from '../api';
 
-/* ─── helpers ───────────────────────────────────────────────────────────── */
 const today = () => new Date().toISOString().slice(0, 10);
 
 function fmtDate(d) {
@@ -12,7 +11,6 @@ function fmtDate(d) {
   return String(d).slice(0, 10);
 }
 
-/* ─── Single promotion card ─────────────────────────────────────────────── */
 function PromotionCard({ promo, theme, mode }) {
   const isPD  = promo.type === 'PD';
   const isPDP = promo.type === 'PDP';
@@ -23,7 +21,6 @@ function PromotionCard({ promo, theme, mode }) {
     ? `${promo.discountPrc}% OFF`
     : null;
 
-  // Show date range only for non-evergreen promotions with a valid dateTo
   const showDate = !promo.isEvergreen && promo.dateTo;
 
   return (
@@ -50,7 +47,6 @@ function PromotionCard({ promo, theme, mode }) {
 
       <div style={{ padding: 16 }}>
 
-        {/* Badge */}
         {badge && (
           <div style={{
             display: 'inline-flex', alignItems: 'center',
@@ -64,7 +60,6 @@ function PromotionCard({ promo, theme, mode }) {
           </div>
         )}
 
-        {/* Product name */}
         <div style={{ color: theme.text, fontWeight: 700, fontSize: 15, marginBottom: 3, lineHeight: 1.4 }}>
           {promo.productName || promo.productCode}
         </div>
@@ -72,7 +67,6 @@ function PromotionCard({ promo, theme, mode }) {
           {promo.productCode}
         </div>
 
-        {/* Price block */}
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
           <div style={{ color: 'var(--primary)', fontFamily: "'Bebas Neue',sans-serif", fontSize: 26, letterSpacing: 1 }}>
             Rs. {promo.finalPrice.toFixed(2)}
@@ -84,7 +78,6 @@ function PromotionCard({ promo, theme, mode }) {
           )}
         </div>
 
-        {/* Savings */}
         {isPD && promo.discountAmt > 0 && (
           <div style={{ color: 'var(--primary)', fontSize: 12, marginTop: 4, fontWeight: 600 }}>
             Save Rs. {promo.discountAmt.toFixed(2)}
@@ -96,20 +89,19 @@ function PromotionCard({ promo, theme, mode }) {
           </div>
         )}
 
-        {/* Date range — only for non-evergreen, show today → dateTo */}
+        {/* Date — valid until dateTo only */}
         {showDate && (
           <div style={{
             marginTop: 10, padding: '6px 10px',
             background: mode === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
             borderRadius: 8,
           }}>
-            <div style={{ color: theme.textFaint, fontSize: 11, fontFamily: "'Space Mono',monospace" }}>
-              {today()} → {fmtDate(promo.dateTo)}
+            <div style={{ color: theme.successText, fontSize: 11, fontFamily: "'Space Mono',monospace" }}>
+              Valid until {fmtDate(promo.dateTo)}
             </div>
           </div>
         )}
 
-        {/* T&C */}
         <div style={{ color: theme.textFaint, fontSize: 10, marginTop: 8, fontStyle: 'italic' }}>
           * Terms &amp; conditions apply
         </div>
@@ -118,7 +110,6 @@ function PromotionCard({ promo, theme, mode }) {
   );
 }
 
-/* ─── Tab button ─────────────────────────────────────────────────────────── */
 function TabBtn({ label, count, active, onClick, theme }) {
   return (
     <button
@@ -148,7 +139,6 @@ function TabBtn({ label, count, active, onClick, theme }) {
   );
 }
 
-/* ─── Page ───────────────────────────────────────────────────────────────── */
 export default function PromotionsPage() {
   const { token }       = useAuth();
   const { theme, mode } = useTheme();
@@ -166,13 +156,10 @@ export default function PromotionsPage() {
       .then(r => {
         const all = r.data || [];
         const todayStr = today();
-
-        // Filter out expired promotions (dateTo < today, skip 1900/null = evergreen)
         const active = all.filter(p => {
           if (p.isEvergreen || !p.dateTo) return true;
           return fmtDate(p.dateTo) >= todayStr;
         });
-
         setPromos(active);
       })
       .catch(e => setError(e.message || 'Failed to load promotions'))
@@ -200,7 +187,6 @@ export default function PromotionsPage() {
   return (
     <div style={{ maxWidth: 900, margin: '0 auto', padding: isMobile ? '24px 16px 100px' : '32px 32px 60px' }}>
 
-      {/* Header */}
       <div style={{ marginBottom: 24 }}>
         <div style={{ color: theme.textMuted, fontSize: 14, fontFamily: "'Space Mono',monospace", marginBottom: 4 }}>
           Current Deals
@@ -228,7 +214,6 @@ export default function PromotionsPage() {
         />
       </div>
 
-      {/* Tabs */}
       {!loading && !error && (
         <div style={{
           display: 'flex', gap: 8, marginBottom: 20,
@@ -243,7 +228,6 @@ export default function PromotionsPage() {
         </div>
       )}
 
-      {/* Content */}
       {loading ? (
         <div style={{ padding: 60, textAlign: 'center', color: theme.textFaint, fontFamily: "'Space Mono',monospace", fontSize: 14 }}>
           Loading promotions...
