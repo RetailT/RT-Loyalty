@@ -22,7 +22,6 @@ router.get('/company', companyMiddleware, (req, res) => {
       phone:        c.PHONE         || null,
       primaryColor: c.PRIMARY_COLOR  || null,
       secondaryColor: c.SECONDARY_COLOR || null,
-      logoUrl:      c.LOGO_URL       || null,
     },
   });
 });

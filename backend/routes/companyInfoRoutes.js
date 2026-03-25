@@ -23,8 +23,7 @@ router.get('/', async (req, res) => {
         LTRIM(RTRIM(ADDRESS))           AS address,
         LTRIM(RTRIM(PHONE))             AS phone,
         LTRIM(RTRIM(PRIMARY_COLOR))     AS primaryColor,
-        LTRIM(RTRIM(SECONDARY_COLOR))   AS secondaryColor,
-        LTRIM(RTRIM(LOGO_URL))          AS logoUrl
+        LTRIM(RTRIM(SECONDARY_COLOR))   AS secondaryColor
       FROM dbo.tb_COMPANY
       WHERE LTRIM(RTRIM(COMPANY_CODE)) = LTRIM(RTRIM(@code))
     `);

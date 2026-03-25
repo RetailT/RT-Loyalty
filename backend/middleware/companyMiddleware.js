@@ -60,6 +60,7 @@ const companyMiddleware = async (req, res, next) => {
       }
     }
 
+    // Fallback: default server (CUSTOMERID = 500)
     if (!serverRow) {
       const r = await masterPool.request()
         .query(`
@@ -81,61 +82,32 @@ const companyMiddleware = async (req, res, next) => {
 
     const { SERVERIP, PORTNO } = serverRow;
     const shopPool = await getShopPool(SERVERIP, PORTNO);
-    let companyRow = null;
 
-    if (finalSlug) {
-      const slugBase = finalSlug.split('.')[0];
-      try {
-        const r = await shopPool.request()
-          .input('slug',     sql.NVarChar, finalSlug)
-          .input('slugBase', sql.NVarChar, slugBase)
-          .query(`
-            SELECT TOP 1
-              LTRIM(RTRIM(COMPANY_CODE))      AS POSBACK_CODE,
-              LTRIM(RTRIM(COMPANY_NAME))      AS COMPANY_NAME,
-              LTRIM(RTRIM(ADDRESS))           AS CITY,
-              LTRIM(RTRIM(PHONE))             AS PHONE,
-              LTRIM(RTRIM(PRIMARY_COLOR))     AS PRIMARY_COLOR,
-              LTRIM(RTRIM(SECONDARY_COLOR))   AS SECONDARY_COLOR,
-              LTRIM(RTRIM(LOGO_URL))          AS LOGO_URL
-            FROM dbo.tb_COMPANY
-            WHERE
-              LTRIM(RTRIM(DOMAIN_SLUG)) = @slug OR
-              LTRIM(RTRIM(DOMAIN_SLUG)) = @slugBase
-          `);
-        if (r.recordset.length) companyRow = r.recordset[0];
-      } catch (e) {
-        console.warn('[companyMiddleware] tb_COMPANY slug query failed:', e.message);
-      }
-    }
+    // tb_SERVER_DETAILS has no POSBACK_CODE column —
+    // just pick the first (and typically only) company from the resolved shop DB.
+    const r = await shopPool.request()
+      .query(`
+        SELECT TOP 1
+          LTRIM(RTRIM(COMPANY_CODE))    AS POSBACK_CODE,
+          LTRIM(RTRIM(COMPANY_NAME))    AS COMPANY_NAME,
+          LTRIM(RTRIM(ADDRESS))         AS CITY,
+          LTRIM(RTRIM(PHONE))           AS PHONE,
+          LTRIM(RTRIM(PRIMARY_COLOR))   AS PRIMARY_COLOR,
+          LTRIM(RTRIM(SECONDARY_COLOR)) AS SECONDARY_COLOR
+        FROM dbo.tb_COMPANY
+        WHERE LTRIM(RTRIM(COMPANY_CODE)) != ''
+        ORDER BY IDX ASC
+      `);
 
-    if (!companyRow) {
-      const r = await shopPool.request()
-        .query(`
-          SELECT TOP 1
-            LTRIM(RTRIM(COMPANY_CODE))      AS POSBACK_CODE,
-            LTRIM(RTRIM(COMPANY_NAME))      AS COMPANY_NAME,
-            LTRIM(RTRIM(ADDRESS))           AS CITY,
-            LTRIM(RTRIM(PHONE))             AS PHONE,
-            LTRIM(RTRIM(PRIMARY_COLOR))     AS PRIMARY_COLOR,
-            LTRIM(RTRIM(SECONDARY_COLOR))   AS SECONDARY_COLOR,
-            LTRIM(RTRIM(LOGO_URL))          AS LOGO_URL
-          FROM dbo.tb_COMPANY
-          WHERE LTRIM(RTRIM(COMPANY_CODE)) != ''
-          ORDER BY IDX ASC
-        `);
-      if (r.recordset.length) companyRow = r.recordset[0];
-    }
-
-    if (!companyRow) {
+    if (!r.recordset.length) {
       return res.status(404).json({ success: false, message: 'Company not found in shop DB.' });
     }
 
-    req.company  = companyRow;
+    req.company  = r.recordset[0];
     req.shopPool = shopPool;
     req.shopSlug = finalSlug;
 
-    console.log(`[companyMiddleware] ${finalSlug || 'dev-fallback'} → ${companyRow.POSBACK_CODE} @ ${SERVERIP}:${PORTNO}`);
+    console.log(`[companyMiddleware] ${finalSlug || 'dev-fallback'} → ${req.company.POSBACK_CODE} @ ${SERVERIP}:${PORTNO}`);
     next();
 
   } catch (err) {
