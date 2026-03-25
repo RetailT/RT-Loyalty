@@ -4,6 +4,14 @@ import { useTheme } from '../context/ThemeContext';
 import useResponsive from '../hooks/useResponsive';
 import { getPromotions } from '../api';
 
+/* ─── helpers ───────────────────────────────────────────────────────────── */
+const today = () => new Date().toISOString().slice(0, 10);
+
+function fmtDate(d) {
+  if (!d) return '';
+  return String(d).slice(0, 10);
+}
+
 /* ─── Single promotion card ─────────────────────────────────────────────── */
 function PromotionCard({ promo, theme, mode }) {
   const isPD  = promo.type === 'PD';
@@ -15,16 +23,18 @@ function PromotionCard({ promo, theme, mode }) {
     ? `${promo.discountPrc}% OFF`
     : null;
 
+  // Show date range only for non-evergreen promotions with a valid dateTo
+  const showDate = !promo.isEvergreen && promo.dateTo;
+
   return (
-    <div
-      style={{
-        background: theme.bgCard,
-        border: `1px solid ${theme.border}`,
-        borderRadius: 16,
-        overflow: 'hidden',
-        transition: 'transform 0.2s, box-shadow 0.2s',
-        cursor: 'default',
-      }}
+    <div style={{
+      background: theme.bgCard,
+      border: `1px solid ${theme.border}`,
+      borderRadius: 16,
+      overflow: 'hidden',
+      transition: 'transform 0.2s, box-shadow 0.2s',
+      cursor: 'default',
+    }}
       onMouseEnter={e => {
         e.currentTarget.style.transform = 'translateY(-3px)';
         e.currentTarget.style.boxShadow = '0 8px 24px color-mix(in srgb, var(--primary) 14%, transparent)';
@@ -36,7 +46,6 @@ function PromotionCard({ promo, theme, mode }) {
         e.currentTarget.style.borderColor = theme.border;
       }}
     >
-      {/* Top accent bar */}
       <div style={{ height: 5, background: 'linear-gradient(90deg, var(--primary), var(--primary-dark))' }} />
 
       <div style={{ padding: 16 }}>
@@ -49,10 +58,9 @@ function PromotionCard({ promo, theme, mode }) {
             border: '1px solid color-mix(in srgb, var(--primary) 30%, transparent)',
             borderRadius: 20, padding: '3px 10px', marginBottom: 10,
           }}>
-            <span style={{
-              color: 'var(--primary)', fontSize: 12,
-              fontFamily: "'Space Mono',monospace", fontWeight: 700, letterSpacing: 1,
-            }}>{badge}</span>
+            <span style={{ color: 'var(--primary)', fontSize: 12, fontFamily: "'Space Mono',monospace", fontWeight: 700, letterSpacing: 1 }}>
+              {badge}
+            </span>
           </div>
         )}
 
@@ -66,10 +74,7 @@ function PromotionCard({ promo, theme, mode }) {
 
         {/* Price block */}
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-          <div style={{
-            color: 'var(--primary)', fontFamily: "'Bebas Neue',sans-serif",
-            fontSize: 26, letterSpacing: 1,
-          }}>
+          <div style={{ color: 'var(--primary)', fontFamily: "'Bebas Neue',sans-serif", fontSize: 26, letterSpacing: 1 }}>
             Rs. {promo.finalPrice.toFixed(2)}
           </div>
           {(promo.discountAmt > 0 || promo.discountPrc > 0) && (
@@ -79,7 +84,7 @@ function PromotionCard({ promo, theme, mode }) {
           )}
         </div>
 
-        {/* Savings line */}
+        {/* Savings */}
         {isPD && promo.discountAmt > 0 && (
           <div style={{ color: 'var(--primary)', fontSize: 12, marginTop: 4, fontWeight: 600 }}>
             Save Rs. {promo.discountAmt.toFixed(2)}
@@ -91,17 +96,15 @@ function PromotionCard({ promo, theme, mode }) {
           </div>
         )}
 
-        {/* Date range */}
-        {(promo.dateFrom || promo.dateTo) && (
+        {/* Date range — only for non-evergreen, show today → dateTo */}
+        {showDate && (
           <div style={{
             marginTop: 10, padding: '6px 10px',
             background: mode === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
             borderRadius: 8,
           }}>
             <div style={{ color: theme.textFaint, fontSize: 11, fontFamily: "'Space Mono',monospace" }}>
-              {promo.dateFrom && `From ${String(promo.dateFrom).slice(0, 10)}`}
-              {promo.dateFrom && promo.dateTo && ' → '}
-              {promo.dateTo && String(promo.dateTo).slice(0, 10)}
+              {today()} → {fmtDate(promo.dateTo)}
             </div>
           </div>
         )}
@@ -122,30 +125,22 @@ function TabBtn({ label, count, active, onClick, theme }) {
       onClick={onClick}
       style={{
         display: 'flex', alignItems: 'center', gap: 7,
-        padding: '8px 18px',
-        borderRadius: 10,
-        flexShrink: 0,                   /* ← never shrink inside scroll row */
+        padding: '8px 18px', borderRadius: 10, flexShrink: 0,
         border: active
           ? '1px solid color-mix(in srgb, var(--primary) 40%, transparent)'
           : `1px solid ${theme.border}`,
-        background: active
-          ? 'color-mix(in srgb, var(--primary) 10%, transparent)'
-          : 'transparent',
+        background: active ? 'color-mix(in srgb, var(--primary) 10%, transparent)' : 'transparent',
         color: active ? 'var(--primary)' : theme.textFaint,
         fontFamily: "'Space Mono',monospace",
         fontSize: 13, fontWeight: active ? 700 : 400,
-        cursor: 'pointer',
-        transition: 'all 0.15s',
-        whiteSpace: 'nowrap',
+        cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
       }}
     >
       {label}
       <span style={{
         background: active ? 'var(--primary)' : theme.border,
         color: active ? '#fff' : theme.textFaint,
-        borderRadius: 99, padding: '1px 7px', fontSize: 11,
-        fontWeight: 700,
-        transition: 'all 0.15s',
+        borderRadius: 99, padding: '1px 7px', fontSize: 11, fontWeight: 700,
       }}>
         {count}
       </span>
@@ -168,7 +163,18 @@ export default function PromotionsPage() {
   useEffect(() => {
     if (!token) return;
     getPromotions(token)
-      .then(r => setPromos(r.data || []))
+      .then(r => {
+        const all = r.data || [];
+        const todayStr = today();
+
+        // Filter out expired promotions (dateTo < today, skip 1900/null = evergreen)
+        const active = all.filter(p => {
+          if (p.isEvergreen || !p.dateTo) return true;
+          return fmtDate(p.dateTo) >= todayStr;
+        });
+
+        setPromos(active);
+      })
       .catch(e => setError(e.message || 'Failed to load promotions'))
       .finally(() => setLoading(false));
   }, [token]);
@@ -206,7 +212,6 @@ export default function PromotionsPage() {
           PROMOTIONS
         </h1>
 
-        {/* Search */}
         <input
           type="text"
           value={search}
@@ -216,27 +221,21 @@ export default function PromotionsPage() {
             width: '100%', padding: '10px 14px', boxSizing: 'border-box',
             background: mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
             border: `1px solid ${theme.border}`, borderRadius: 10,
-            color: theme.text, fontSize: 15, outline: 'none',
-            fontFamily: 'inherit',
+            color: theme.text, fontSize: 15, outline: 'none', fontFamily: 'inherit',
           }}
           onFocus={e => (e.target.style.borderColor = 'var(--primary)')}
           onBlur={e  => (e.target.style.borderColor = theme.border)}
         />
       </div>
 
-      {/* Tabs — horizontally scrollable */}
+      {/* Tabs */}
       {!loading && !error && (
         <div style={{
-          display: 'flex',
-          gap: 8,
-          marginBottom: 20,
-          overflowX: 'auto',           /* ← horizontal scroll */
-          flexWrap: 'nowrap',          /* ← keep all tabs on one line */
+          display: 'flex', gap: 8, marginBottom: 20,
+          overflowX: 'auto', flexWrap: 'nowrap',
           WebkitOverflowScrolling: 'touch',
-          /* hide scrollbar visually but keep it functional */
-          scrollbarWidth: 'none',      /* Firefox */
-          msOverflowStyle: 'none',     /* IE/Edge */
-          paddingBottom: 2,            /* prevent clipping of button shadows */
+          scrollbarWidth: 'none', msOverflowStyle: 'none',
+          paddingBottom: 2,
         }}>
           <TabBtn label="All"             count={countAll} active={tab === 'all'} onClick={() => setTab('all')} theme={theme} />
           <TabBtn label="Discount Amount" count={countPD}  active={tab === 'PD'}  onClick={() => setTab('PD')}  theme={theme} />

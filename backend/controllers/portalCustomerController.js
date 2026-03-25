@@ -387,18 +387,30 @@ exports.getPromotions = async (req, res) => {
         finalPrice  = unitPrice - (unitPrice * discountPrc / 100);
       }
 
+      // Normalize dates — 1900 sentinel = no expiry (evergreen)
+      const normDate = (d) => {
+        if (!d) return null;
+        const y = new Date(d).getFullYear();
+        return y <= 1900 ? null : d;
+      };
+
+      const dFrom = normDate(row.dateFrom);
+      const dTo   = normDate(row.dateTo);
+
       return {
         idx:         row.idx,
         productCode: row.productCode,
         productName: row.productName,
-        type,                                  // 'PD' | 'PDP'
-        unitPrice,                             // SCALEPRICE from tb_PRODUCT
-        discountAmt,                           // Rs. off  — PD  type
-        discountPrc,                           // % off    — PDP type
+        type,
+        unitPrice,
+        discountAmt,
+        discountPrc,
         finalPrice:  Math.max(0, finalPrice),
         minQty:      parseFloat(row.minQty || 0),
-        dateFrom:    row.dateFrom || null,
-        dateTo:      row.dateTo   || null,
+        // dateFrom/dateTo null = evergreen (1900 sentinel)
+        dateFrom:    dFrom,
+        dateTo:      dTo,
+        isEvergreen: !dFrom && !dTo,
       };
     });
 
