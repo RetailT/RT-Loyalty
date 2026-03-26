@@ -5,6 +5,7 @@ const tabs = [
   { id:'dashboard',    icon:'⬡', label:'Home'       },
   { id:'transactions', icon:'◈', label:'History'    },
   { id:'promotions',   icon:'⊞', label:'Promotions' },
+  { id:'terms',        icon:'◫', label:'T&Cs'       },  // ← added
   { id:'qr',           icon:'▦', label:'My QR'      },
   { id:'profile',      icon:'◉', label:'Profile'    },
 ];
