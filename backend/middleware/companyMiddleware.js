@@ -4,6 +4,7 @@ const { getMasterPool, getShopPool, sql } = require('../config/userdb');
 const MAIN_DOMAINS = [
   'rtpos.web.lk',
   'www.rtpos.web.lk',
+  'api.rtpos.web.lk',
 ];
 
 const companyMiddleware = async (req, res, next) => {
