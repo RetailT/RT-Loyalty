@@ -111,14 +111,17 @@ app.use((err, req, res, next) => {
 });
 
 // ─── Start ────────────────────────────────────────────────────────────────────
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`\n🚀 Retail Loyalty API  →  http://localhost:${PORT}`);
-  console.log(`   Admin login           →  POST /api/auth/login`);
-  console.log(`   Customer OTP          →  POST /api/portal/auth/send-otp`);
-  console.log(`   Health check          →  GET  /api/debug/health`);
-  console.log(`   Company info          →  GET  /api/company-info`);
-  console.log(`   Shop portal           →  retailtarget.lk`);
-});
+// Local development only
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`\n🚀 Retail Loyalty API  →  http://localhost:${PORT}`);
+    console.log(`   Admin login           →  POST /api/auth/login`);
+    console.log(`   Customer OTP          →  POST /api/portal/auth/send-otp`);
+    console.log(`   Health check          →  GET  /api/debug/health`);
+    console.log(`   Company info          →  GET  /api/company-info`);
+    console.log(`   Shop portal           →  retailtarget.lk`);
+  });
+}
 
 module.exports = app;
