@@ -3,12 +3,13 @@ import { useTheme, useCardHover } from '../context/ThemeContext';
 import useResponsive from '../hooks/useResponsive';
 
 function getSlug() {
-  const host = window.location.hostname;
+  const host = window.location.hostname.replace(/^www\./, '').toLowerCase().trim();
   const DEFAULT_SLUG = process.env.REACT_APP_DEFAULT_SHOP || 'retailtarget';
-  if (host === 'localhost' || host === '127.0.0.1' || host.includes('vercel.app')) {
+  const MAIN_DOMAINS = ['rtpos.web.lk'];
+  if (host === 'localhost' || host === '127.0.0.1' || host.includes('vercel.app'))
     return new URLSearchParams(window.location.search).get('shop') || DEFAULT_SLUG;
-  }
-  return host.replace(/^www\./, '');
+  if (MAIN_DOMAINS.includes(host)) return null;
+  return host;
 }
 
 function BenefitCard({ b }) {
@@ -30,7 +31,8 @@ export default function LandingPage({ onNavigate }) {
   useEffect(() => {
     const API  = process.env.REACT_APP_API_URL || 'http://localhost:10000';
     const slug = getSlug();
-    const headers = { 'Content-Type': 'application/json', 'X-Shop-Slug': slug };
+    const headers = { 'Content-Type': 'application/json' };
+    if (slug) headers['X-Shop-Slug'] = slug;
 
     fetch(`${API}/api/portal/company`, { headers, cache: 'no-store' })
       .then(r => {

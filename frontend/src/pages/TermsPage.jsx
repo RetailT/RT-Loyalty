@@ -5,11 +5,12 @@ import useResponsive from '../hooks/useResponsive';
 import { fs, fh, fm } from '../utils/fontScale';
 
 function getSlug() {
-  const host  = window.location.hostname;
-  const parts = host.split('.');
+  const host = window.location.hostname.replace(/^www\./, '').toLowerCase().trim();
+  const MAIN_DOMAINS = ['rtpos.web.lk'];
   if (host === 'localhost' || host === '127.0.0.1' || host.includes('vercel.app'))
     return new URLSearchParams(window.location.search).get('shop') || 'retailtarget';
-  return parts[0];
+  if (MAIN_DOMAINS.includes(host)) return null;
+  return host;
 }
 
 export default function TermsPage() {
@@ -20,10 +21,10 @@ export default function TermsPage() {
   useEffect(() => {
     const API  = process.env.REACT_APP_API_URL || 'http://localhost:10000';
     const slug = getSlug();
+    const headers = { 'Content-Type': 'application/json' };
+    if (slug) headers['X-Shop-Slug'] = slug;
 
-    fetch(`${API}/api/portal/company`, {
-      headers: { 'X-Shop-Slug': slug },
-    })
+    fetch(`${API}/api/portal/company`, { headers })
       .then(r => r.json())
       .then(d => { if (d.success) setCompany(d.company); })
       .catch(() => {});
