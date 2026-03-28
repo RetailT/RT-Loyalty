@@ -10,15 +10,21 @@ const DEFAULTS = {
 };
 
 function getSlug() {
-  const host  = window.location.hostname;
-  const parts = host.split('.');
-  if (host === 'localhost' || host === '127.0.0.1' || parts.length < 2) {
-    return new URLSearchParams(window.location.search).get('shop') || 'retailtarget';
+  const host = window.location.hostname
+    .replace(/^www\./, '')
+    .toLowerCase()
+    .trim();
+
+  const DEFAULT_SLUG = 'retailtarget';
+
+  if (host === 'localhost' || host === '127.0.0.1' || host.includes('vercel.app')) {
+    return new URLSearchParams(window.location.search).get('shop') || DEFAULT_SLUG;
   }
-  if (host.includes('vercel.app')) {
-    return new URLSearchParams(window.location.search).get('shop') || 'retailtarget';
-  }
-  return parts[0];
+
+  const MAIN_DOMAINS = ['rtpos.web.lk'];
+  if (MAIN_DOMAINS.includes(host)) return DEFAULT_SLUG;
+
+  return host; // kamals.lk → full domain
 }
 
 function darkenColor(hex, amount = 30) {
@@ -55,7 +61,12 @@ export function CompanyProvider({ children }) {
   }, [slug]);
 
   useEffect(() => {
-    fetch(`${API}/api/portal/company?shop=${slug}`)
+    fetch(`${API}/api/portal/company`, {
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Shop-Slug': slug,
+      }
+    })
       .then(r => r.json())
       .then(d => {
         if (d.success) {
