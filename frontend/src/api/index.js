@@ -1,11 +1,13 @@
 const API = process.env.REACT_APP_API_URL || 'http://localhost:10000';
 
+const MAIN_DOMAINS = ['rtpos.web.lk', 'www.rtpos.web.lk'];
+
+function getCleanHost() {
+  return window.location.hostname.replace(/^www\./, '').toLowerCase().trim();
+}
+
 function getSlug() {
-  const host  = window.location.hostname
-    .replace(/^www\./, '')  // www. strip 
-    .toLowerCase()
-    .trim();
-  
+  const host = getCleanHost();
   const parts = host.split('.');
   const DEFAULT_SLUG = process.env.REACT_APP_DEFAULT_SHOP || 'retailtarget';
 
@@ -13,28 +15,24 @@ function getSlug() {
     return new URLSearchParams(window.location.search).get('shop') || DEFAULT_SLUG;
   }
 
-  // Vercel preview URLs
   if (host.includes('vercel.app')) {
     return new URLSearchParams(window.location.search).get('shop') || DEFAULT_SLUG;
   }
 
-  // Main admin domain → default slug
-  const MAIN_DOMAINS = ['rtpos.web.lk'];
-  if (MAIN_DOMAINS.includes(host)) {
-    return DEFAULT_SLUG; // 'retailtarget'
-  }
+  // Main domain — backend detect, slug is ignored
+  if (MAIN_DOMAINS.includes(host)) return null;
 
-  // Shop domain: kamals.lk → full domain
   return host;
 }
 
 function baseHeaders(token) {
-  const h = { 'Content-Type': 'application/json', 'X-Shop-Slug': getSlug() };
+  const slug = getSlug();
+  const h = { 'Content-Type': 'application/json' };
+  if (slug) h['X-Shop-Slug'] = slug; // if null not header
   if (token) h['Authorization'] = `Bearer ${token}`;
   return h;
 }
 
-// ── Auth ──────────────────────────────────────────────────
 export const sendOTP = async (_email, phone) => {
   const res  = await fetch(`${API}/api/portal/auth/send-otp`, {
     method: 'POST', headers: baseHeaders(),
@@ -55,7 +53,6 @@ export const verifyOTP = async (_email, phone, otp) => {
   return data;
 };
 
-// ── Customer ──────────────────────────────────────────────
 export const getMe = async (token) => {
   const res = await fetch(`${API}/api/portal/me`, { headers: baseHeaders(token) });
   return res.json();
@@ -70,14 +67,12 @@ export const updateMe = async (token, body) => {
   return data;
 };
 
-// ── Transactions ──────────────────────────────────────────
 export const getMyTransactions = async (token, params = {}) => {
   const qs  = new URLSearchParams(params).toString();
   const res = await fetch(`${API}/api/portal/transactions${qs ? '?' + qs : ''}`, { headers: baseHeaders(token) });
   return res.json();
 };
 
-// ── Rewards ───────────────────────────────────────────────
 export const getRewards = async (token) => {
   const res = await fetch(`${API}/api/portal/rewards`, { headers: baseHeaders(token) });
   return res.json();
@@ -97,7 +92,6 @@ export const getMyRedemptions = async (token) => {
   return res.json();
 };
 
-// ── Promotions ────────────────────────────────────────────
 export const getPromotions = async (token) => {
   const res = await fetch(`${API}/api/portal/promotions`, { headers: baseHeaders(token) });
   return res.json();

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const CompanyContext = createContext();
 const API = process.env.REACT_APP_API_URL || 'http://localhost:10000';
+const MAIN_DOMAINS = ['rtpos.web.lk', 'www.rtpos.web.lk'];
 
 const DEFAULTS = {
   primaryColor:   '#e53e3e',
@@ -10,21 +11,17 @@ const DEFAULTS = {
 };
 
 function getSlug() {
-  const host = window.location.hostname
-    .replace(/^www\./, '')
-    .toLowerCase()
-    .trim();
-
+  const host = window.location.hostname.replace(/^www\./, '').toLowerCase().trim();
   const DEFAULT_SLUG = 'retailtarget';
 
   if (host === 'localhost' || host === '127.0.0.1' || host.includes('vercel.app')) {
     return new URLSearchParams(window.location.search).get('shop') || DEFAULT_SLUG;
   }
 
-  const MAIN_DOMAINS = ['rtpos.web.lk'];
-  if (MAIN_DOMAINS.includes(host)) return DEFAULT_SLUG;
+  // Main domain — null return, header not sent, backend detect
+  if (MAIN_DOMAINS.includes(host)) return null;
 
-  return host; // kamals.lk → full domain
+  return host;
 }
 
 function darkenColor(hex, amount = 30) {
@@ -49,31 +46,27 @@ export function CompanyProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(null);
   const slug = getSlug();
+  const cacheKey = `company_colors_${slug || 'main'}`;
 
-  // ── Cached color instant apply (no flicker) ──
   useEffect(() => {
-    const cached = localStorage.getItem(`company_colors_${slug}`);
+    const cached = localStorage.getItem(cacheKey);
     if (cached) {
-      try {
-        applyColors(JSON.parse(cached));
-      } catch {}
+      try { applyColors(JSON.parse(cached)); } catch {}
     }
-  }, [slug]);
+  }, [cacheKey]);
 
   useEffect(() => {
-    fetch(`${API}/api/portal/company`, {
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Shop-Slug': slug,
-      }
-    })
+    // if slug null header not sent — backend domain detect 
+    const headers = { 'Content-Type': 'application/json' };
+    if (slug) headers['X-Shop-Slug'] = slug;
+
+    fetch(`${API}/api/portal/company`, { headers })
       .then(r => r.json())
       .then(d => {
         if (d.success) {
           setCompany(d.company);
           applyColors(d.company);
-          // ── Cache save ──
-          localStorage.setItem(`company_colors_${slug}`, JSON.stringify(d.company));
+          localStorage.setItem(cacheKey, JSON.stringify(d.company));
         } else {
           setError(d.message || 'Shop not found');
           applyColors(DEFAULTS);
@@ -84,7 +77,7 @@ export function CompanyProvider({ children }) {
         applyColors(DEFAULTS);
       })
       .finally(() => setLoading(false));
-  }, [slug]);
+  }, [slug, cacheKey]);
 
   return (
     <CompanyContext.Provider value={{ company, loading, error, slug }}>
