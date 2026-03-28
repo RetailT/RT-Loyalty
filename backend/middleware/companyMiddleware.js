@@ -1,5 +1,11 @@
 const { getMasterPool, getShopPool, sql } = require('../config/userdb');
 
+// ── Main/Admin domains — only these get the RT fallback ──────────────────────
+const MAIN_DOMAINS = [
+  'rtpos.web.lk',
+  'www.rtpos.web.lk',
+];
+
 const companyMiddleware = async (req, res, next) => {
   try {
     const host    = req.headers.host || '';
@@ -16,9 +22,12 @@ const companyMiddleware = async (req, res, next) => {
       cleanHost.includes('127.0.0.1') ||
       cleanHost.includes('vercel.app');
 
+    const isMainDomain = MAIN_DOMAINS.includes(cleanHost) || 
+                         MAIN_DOMAINS.includes(`www.${cleanHost}`);
+
     let finalSlug = '';
 
-    if (!isDev) {
+    if (!isDev && !isMainDomain) {
       finalSlug = cleanHost;
     } else if (devSlug) {
       finalSlug = devSlug.trim().toLowerCase();
@@ -27,6 +36,7 @@ const companyMiddleware = async (req, res, next) => {
     const masterPool = await getMasterPool();
     let serverRow    = null;
 
+    // ── Shop domain lookup ────────────────────────────────────────────────────
     if (finalSlug) {
       const slugBase = finalSlug.split('.')[0];
       try {
@@ -52,7 +62,8 @@ const companyMiddleware = async (req, res, next) => {
         console.warn('[companyMiddleware] SERVER_DETAILS query failed:', e.message);
       }
 
-      if (!serverRow && !isDev) {
+      // Unknown shop domain → block immediately
+      if (!serverRow) {
         return res.status(404).json({
           success: false,
           message: 'Shop not configured. Please contact support.',
@@ -60,8 +71,16 @@ const companyMiddleware = async (req, res, next) => {
       }
     }
 
-    // Fallback: default server (CUSTOMERID = 500)
+    // ── Fallback: only for dev / main admin domain ────────────────────────────
     if (!serverRow) {
+      if (!isDev && !isMainDomain) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied. Shop not configured.',
+        });
+      }
+
+      // Dev or main domain → RT default server (CUSTOMERID = 500)
       const r = await masterPool.request()
         .query(`
           SELECT TOP 1
@@ -74,17 +93,20 @@ const companyMiddleware = async (req, res, next) => {
             AND (END_DATE IS NULL OR END_DATE >= GETDATE())
           ORDER BY IDX DESC
         `);
+
       if (r.recordset.length) serverRow = r.recordset[0];
       if (!serverRow) {
-        return res.status(404).json({ success: false, message: 'Default server not found.' });
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Default server not found.' 
+        });
       }
     }
 
+    // ── Shop DB connect ───────────────────────────────────────────────────────
     const { SERVERIP, PORTNO } = serverRow;
     const shopPool = await getShopPool(SERVERIP, PORTNO);
 
-    // tb_SERVER_DETAILS has no POSBACK_CODE column —
-    // just pick the first (and typically only) company from the resolved shop DB.
     const r = await shopPool.request()
       .query(`
         SELECT TOP 1
@@ -100,7 +122,10 @@ const companyMiddleware = async (req, res, next) => {
       `);
 
     if (!r.recordset.length) {
-      return res.status(404).json({ success: false, message: 'Company not found in shop DB.' });
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Company not found in shop DB.' 
+      });
     }
 
     req.company  = r.recordset[0];
