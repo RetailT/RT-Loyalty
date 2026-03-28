@@ -14,8 +14,14 @@ function getSlug() {
     return new URLSearchParams(window.location.search).get('shop') || DEFAULT_SLUG;
   }
 
-  // Production subdomain: kamals.loyaltyapp.lk → 'kamals'
-  return parts[0];
+  // Main admin domain → default slug
+  const MAIN_DOMAINS = ['rtpos.web.lk', 'www.rtpos.web.lk'];
+  if (MAIN_DOMAINS.includes(host)) {
+    return DEFAULT_SLUG; // 'retailtarget'
+  }
+
+  // Shop domain: kamals.lk → full domain send to backend
+  return host; // 'kamals.lk' → backend middleware detect
 }
 
 function baseHeaders(token) {
