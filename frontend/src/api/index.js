@@ -1,7 +1,11 @@
 const API = process.env.REACT_APP_API_URL || 'http://localhost:10000';
 
 function getSlug() {
-  const host  = window.location.hostname;
+  const host  = window.location.hostname
+    .replace(/^www\./, '')  // www. strip 
+    .toLowerCase()
+    .trim();
+  
   const parts = host.split('.');
   const DEFAULT_SLUG = process.env.REACT_APP_DEFAULT_SHOP || 'retailtarget';
 
@@ -15,13 +19,13 @@ function getSlug() {
   }
 
   // Main admin domain → default slug
-  const MAIN_DOMAINS = ['rtpos.web.lk', 'www.rtpos.web.lk'];
+  const MAIN_DOMAINS = ['rtpos.web.lk'];
   if (MAIN_DOMAINS.includes(host)) {
     return DEFAULT_SLUG; // 'retailtarget'
   }
 
-  // Shop domain: kamals.lk → full domain send to backend
-  return host; // 'kamals.lk' → backend middleware detect
+  // Shop domain: kamals.lk → full domain
+  return host;
 }
 
 function baseHeaders(token) {
