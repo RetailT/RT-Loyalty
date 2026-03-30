@@ -1,27 +1,34 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ThemeProvider }                    from './context/ThemeContext';
-import { AuthProvider, useAuth }            from './context/AuthContext';
-import { CompanyProvider, useCompany }      from './context/CompanyContext';
-import useResponsive                        from './hooks/useResponsive';
+import { ThemeProvider } from './context/ThemeContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { CompanyProvider, useCompany } from './context/CompanyContext';
+import useResponsive from './hooks/useResponsive';
 
-import Navbar       from './components/Navbar';
-import Footer       from './components/Footer';
-import BottomNav    from './components/BottomNav';
+import Navbar from './components/Navbar';
+import Footer from './components/Footer';
+import BottomNav from './components/BottomNav';
 
-import LandingPage      from './pages/LandingPage';
-import LoginPage        from './pages/LoginPage';
-import DashboardPage    from './pages/DashboardPage';
+import LandingPage from './pages/LandingPage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import DashboardPage from './pages/DashboardPage';
 import TransactionsPage from './pages/TransactionsPage';
-import PromotionsPage   from './pages/PromotionsPage';
-import TermsPage        from './pages/TermsPage';
-import ProfilePage      from './pages/ProfilePage';
-import QRPage           from './pages/QRPage';
+import PromotionsPage from './pages/PromotionsPage';
+import TermsPage from './pages/TermsPage';
+import ProfilePage from './pages/ProfilePage';
+import QRPage from './pages/QRPage';
 
 const PROTECTED = ['dashboard', 'transactions', 'promotions', 'profile', 'qr'];
-const PUBLIC    = ['landing', 'login', 'terms'];
+const PUBLIC = ['landing', 'login', 'register', 'terms'];   // ← 'register' එකතු කළා
 
 function getPageFromHash() {
-  const hash  = window.location.hash.replace('#', '').trim();
+  let hash = window.location.hash.replace('#', '').trim();
+
+  // Fix for "#/register" or "/register"
+  if (hash.startsWith('/')) {
+    hash = hash.substring(1);
+  }
+
   const valid = [...PROTECTED, ...PUBLIC];
   return valid.includes(hash) ? hash : 'landing';
 }
@@ -52,14 +59,14 @@ function LoadingScreen() {
 }
 
 function AppContent() {
-  const [page, setPage]             = useState(getPageFromHash);
-  const { isLoggedIn, loading }     = useAuth();
+  const [page, setPage] = useState(getPageFromHash());
+  const { isLoggedIn, loading } = useAuth();
   const { loading: companyLoading } = useCompany();
-  const { isMobile }                = useResponsive();
+  const { isMobile } = useResponsive();
 
   const navigate = useCallback((p) => {
     setPage(p);
-    window.location.hash = p;
+    window.location.hash = p;           // ← "#/register" වෙනුවට "#register" යවනවා
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
@@ -81,22 +88,22 @@ function AppContent() {
     }
   }, [isLoggedIn, loading, page, navigate]);
 
-  // ── Untill Company colors load OR auth check, loading screen ──
   if (companyLoading || loading) {
     return <LoadingScreen />;
   }
 
   const renderPage = () => {
     switch (page) {
-      case 'landing':      return <LandingPage      onNavigate={navigate} />;
-      case 'login':        return <LoginPage        onNavigate={navigate} />;
-      case 'dashboard':    return <DashboardPage    onNavigate={navigate} />;
+      case 'landing':      return <LandingPage onNavigate={navigate} />;
+      case 'login':        return <LoginPage onNavigate={navigate} />;
+      case 'register':     return <RegisterPage onNavigate={navigate} />;
+      case 'dashboard':    return <DashboardPage onNavigate={navigate} />;
       case 'transactions': return <TransactionsPage onNavigate={navigate} />;
-      case 'promotions':   return <PromotionsPage   onNavigate={navigate} />;
-      case 'terms':        return <TermsPage        onNavigate={navigate} />;
-      case 'profile':      return <ProfilePage      onNavigate={navigate} />;
-      case 'qr':           return <QRPage           onNavigate={navigate} />;
-      default:             return <LandingPage      onNavigate={navigate} />;
+      case 'promotions':   return <PromotionsPage onNavigate={navigate} />;
+      case 'terms':        return <TermsPage onNavigate={navigate} />;
+      case 'profile':      return <ProfilePage onNavigate={navigate} />;
+      case 'qr':           return <QRPage onNavigate={navigate} />;
+      default:             return <LandingPage onNavigate={navigate} />;
     }
   };
 

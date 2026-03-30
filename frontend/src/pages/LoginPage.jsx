@@ -171,6 +171,32 @@ export default function LoginPage({ onNavigate }) {
                   📱 We'll send a 6-digit OTP code to verify your identity.
                 </div>
               </div>
+
+              {/* Register Link */}
+<div style={{ marginTop: 20, paddingTop: 16, borderTop: `1px solid ${theme.border}`, textAlign: 'center' }}>
+  <span style={{ color: theme.textMuted, fontSize: 11, fontFamily: "'Space Mono',monospace" }}>
+    New customer?{' '}
+  </span>
+  <button
+    onClick={() => {
+      console.log("Register button clicked!");   // Debug
+      onNavigate('register');
+    }}
+    style={{
+      background: 'none', 
+      border: 'none',
+      color: 'var(--primary)', 
+      fontSize: 11,
+      cursor: 'pointer', 
+      fontFamily: "'Space Mono',monospace",
+      fontWeight: 700, 
+      letterSpacing: 1,
+      padding: 0,
+    }}
+  >
+    Register →
+  </button>
+</div>
             </>
           )}
 

@@ -53,6 +53,24 @@ export const verifyOTP = async (_email, phone, otp) => {
   return data;
 };
 
+// ==================== NEW: Register Customer ====================
+
+export const registerCustomer = async (customerData) => {
+  const res = await fetch(`${API}/api/portal/register`, {
+    method: 'POST',
+    headers: baseHeaders(),           // slug and Content-Type handled by baseHeaders 
+    body: JSON.stringify(customerData),
+  });
+
+  const data = await res.json();
+
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || 'Registration failed. Please try again.');
+  }
+
+  return data;
+};
+
 export const getMe = async (token) => {
   const res = await fetch(`${API}/api/portal/me`, { headers: baseHeaders(token) });
   return res.json();
