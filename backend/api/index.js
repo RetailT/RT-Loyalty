@@ -113,7 +113,7 @@ app.use((err, req, res, next) => {
 // ─── Start ────────────────────────────────────────────────────────────────────
 // Local development only
 if (process.env.NODE_ENV !== 'production') {
-  const PORT = process.env.PORT || 5000;
+  const PORT = process.env.PORT || 10000;
   app.listen(PORT, () => {
     console.log(`\n🚀 Retail Loyalty API  →  http://localhost:${PORT}`);
     console.log(`   Admin login           →  POST /api/auth/login`);
