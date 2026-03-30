@@ -15,7 +15,7 @@ export default function Footer({ onNavigate, currentPage }) {
   const { theme, mode } = useTheme();
   const { isMobile }    = useResponsive();
   const year = new Date().getFullYear();
-  const showNav = currentPage && !['login', 'landing'].includes(currentPage);
+  const showNav = currentPage && !['login', 'landing', 'register'].includes(currentPage);
 
   return (
     <footer style={{ background: mode==='dark'?'#0a0a0a':'#ffffff', borderTop:`1px solid ${theme.border}`, marginTop: showNav ? 48 : 0, transition:'background 0.3s' }}>
