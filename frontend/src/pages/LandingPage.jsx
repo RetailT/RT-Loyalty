@@ -72,18 +72,27 @@ export default function LandingPage({ onNavigate }) {
           <p style={{ color:theme.textMuted, fontSize: isMobile?16:18, lineHeight:1.8, maxWidth:480, margin:'0 auto 36px' }}>
             Earn points every time you shop and watch them add up. Easily check your balance, track your history, and manage all your points in one simple, convenient place.
           </p>
+
+          {/* ── Buttons ── */}
           <div style={{ display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap' }}>
-            <button onClick={() => onNavigate('login')} style={{ padding:'14px 32px', borderRadius:10, background:'linear-gradient(135deg, var(--primary), var(--primary-dark))', border:'none', color:'#fff', fontFamily:"'Space Mono',monospace", fontSize:13, letterSpacing:2, textTransform:'uppercase', cursor:'pointer', boxShadow:'0 8px 32px color-mix(in srgb, var(--primary) 35%, transparent)', transition:'all 0.2s' }}
+            <button
+              onClick={() => onNavigate('login')}
+              style={{ padding:'14px 32px', borderRadius:10, background:'linear-gradient(135deg, var(--primary), var(--primary-dark))', border:'none', color:'#fff', fontFamily:"'Space Mono',monospace", fontSize:13, letterSpacing:2, textTransform:'uppercase', cursor:'pointer', boxShadow:'0 8px 32px color-mix(in srgb, var(--primary) 35%, transparent)', transition:'all 0.2s' }}
               onMouseEnter={e => e.currentTarget.style.transform='translateY(-2px)'}
               onMouseLeave={e => e.currentTarget.style.transform='translateY(0)'}>
               Login to Account →
             </button>
-            <button onClick={() => onNavigate('qr')} style={{ padding:'14px 32px', borderRadius:10, background:'transparent', border:`1px solid ${theme.border}`, color:theme.textSub, fontFamily:"'Space Mono',monospace", fontSize:13, letterSpacing:2, textTransform:'uppercase', cursor:'pointer', transition:'all 0.2s' }}
+
+            {/* ── "Check My Points" → "Register" ── */}
+            <button
+              onClick={() => onNavigate('register')}
+              style={{ padding:'14px 32px', borderRadius:10, background:'transparent', border:`1px solid ${theme.border}`, color:theme.textSub, fontFamily:"'Space Mono',monospace", fontSize:13, letterSpacing:2, textTransform:'uppercase', cursor:'pointer', transition:'all 0.2s' }}
               onMouseEnter={e => { e.currentTarget.style.borderColor='var(--primary)'; e.currentTarget.style.color='var(--primary)'; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor=theme.border; e.currentTarget.style.color=theme.textSub; }}>
-              Check My Points 📱
+              Register Free →
             </button>
           </div>
+
           <div style={{ display:'flex', justifyContent:'center', gap: isMobile?24:48, marginTop:56, flexWrap:'wrap' }}>
             {[['500K+','Members'],['2.5M+','Points Earned'],['500+','Stores'],['5','Card Types']].map(([num,lbl]) => (
               <div key={lbl} style={{ textAlign:'center' }}>
@@ -148,11 +157,22 @@ export default function LandingPage({ onNavigate }) {
         <div style={{ background:'linear-gradient(135deg, var(--primary), var(--primary-dark))', borderRadius:24, padding: isMobile?'36px 24px':'48px 40px', boxShadow:'0 24px 60px color-mix(in srgb, var(--primary) 25%, transparent)' }}>
           <h2 style={{ color:'#fff', fontFamily:"'Bebas Neue',sans-serif", fontSize: isMobile?41:55, letterSpacing:3, marginBottom:12 }}>START EARNING TODAY</h2>
           <p style={{ color:'rgba(255,255,255,0.8)', fontSize:16, marginBottom:28 }}>Sign in with your mobile number. No password required.</p>
-          <button onClick={() => onNavigate('login')} style={{ padding:'14px 36px', borderRadius:10, background:'#fff', border:'none', color:'var(--primary)', fontFamily:"'Space Mono',monospace", fontSize:14, letterSpacing:2, textTransform:'uppercase', fontWeight:700, cursor:'pointer', boxShadow:'0 8px 24px rgba(0,0,0,0.15)', transition:'transform 0.2s' }}
-            onMouseEnter={e => e.currentTarget.style.transform='translateY(-2px)'}
-            onMouseLeave={e => e.currentTarget.style.transform='translateY(0)'}>
-            Login Now — It's Free →
-          </button>
+          <div style={{ display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap' }}>
+            <button
+              onClick={() => onNavigate('login')}
+              style={{ padding:'14px 36px', borderRadius:10, background:'#fff', border:'none', color:'var(--primary)', fontFamily:"'Space Mono',monospace", fontSize:14, letterSpacing:2, textTransform:'uppercase', fontWeight:700, cursor:'pointer', boxShadow:'0 8px 24px rgba(0,0,0,0.15)', transition:'transform 0.2s' }}
+              onMouseEnter={e => e.currentTarget.style.transform='translateY(-2px)'}
+              onMouseLeave={e => e.currentTarget.style.transform='translateY(0)'}>
+              Login Now — It's Free →
+            </button>
+            <button
+              onClick={() => onNavigate('register')}
+              style={{ padding:'14px 36px', borderRadius:10, background:'transparent', border:'2px solid rgba(255,255,255,0.5)', color:'#fff', fontFamily:"'Space Mono',monospace", fontSize:14, letterSpacing:2, textTransform:'uppercase', fontWeight:700, cursor:'pointer', transition:'all 0.2s' }}
+              onMouseEnter={e => { e.currentTarget.style.background='rgba(255,255,255,0.15)'; e.currentTarget.style.borderColor='#fff'; }}
+              onMouseLeave={e => { e.currentTarget.style.background='transparent'; e.currentTarget.style.borderColor='rgba(255,255,255,0.5)'; }}>
+              New? Register →
+            </button>
+          </div>
         </div>
       </section>
     </div>
