@@ -111,10 +111,13 @@ export default function LoginPage({ onNavigate }) {
               boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
               fontFamily: "'Bebas Neue',sans-serif", letterSpacing: 1,
             }}>RT</div>
-            <h1 style={{ color: theme.text, fontFamily: "'Bebas Neue',sans-serif", fontSize: 26, letterSpacing: 2, marginBottom: 4 }}>
+            <h1 style={{
+              color: theme.text, fontFamily: "'Bebas Neue',sans-serif",
+              fontSize: fh.h4, letterSpacing: 2, marginBottom: 4,
+            }}>
               {step === 'phone' ? 'WELCOME BACK' : 'VERIFY OTP'}
             </h1>
-            <p style={{ color: theme.textMuted, fontSize: 12, fontFamily: "'Space Mono',monospace" }}>
+            <p style={{ color: theme.textMuted, fontSize: fm.sm, fontFamily: "'Space Mono',monospace" }}>
               {step === 'phone'
                 ? 'Enter your details to continue'
                 : `OTP sent to ${maskedPhone || 'your mobile'}`}
@@ -125,7 +128,11 @@ export default function LoginPage({ onNavigate }) {
           {step === 'phone' && (
             <>
               <div style={{ marginBottom: 16 }}>
-                <label style={{ display: 'block', color: theme.textMuted, fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', fontFamily: "'Space Mono',monospace", marginBottom: 8 }}>
+                <label style={{
+                  display: 'block', color: theme.textMuted,
+                  fontSize: fm.xs, letterSpacing: 2,
+                  textTransform: 'uppercase', fontFamily: "'Space Mono',monospace", marginBottom: 8,
+                }}>
                   Mobile No / NIC / Passport / Loyalty No
                 </label>
                 <input
@@ -135,14 +142,14 @@ export default function LoginPage({ onNavigate }) {
                   onKeyDown={e => e.key === 'Enter' && handleSendOTP()}
                   placeholder="07XXXXXXXX / NIC / Passport / Loyalty No"
                   autoFocus
-                  style={{ ...inp, width: '100%', padding: '12px 14px', fontSize: 14, boxSizing: 'border-box' }}
+                  style={{ ...inp, width: '100%', padding: '12px 14px', fontSize: fs.md, boxSizing: 'border-box' }}
                   onFocus={e => e.target.style.borderColor = primary}
                   onBlur={e  => e.target.style.borderColor = theme.border}
                 />
               </div>
 
               {error && (
-                <div style={{ color: theme.errorText, fontSize: 11, marginBottom: 12, fontFamily: "'Space Mono',monospace" }}>
+                <div style={{ color: theme.errorText, fontSize: fm.base, marginBottom: 12, fontFamily: "'Space Mono',monospace" }}>
                   ⚠ {error}
                 </div>
               )}
@@ -155,7 +162,7 @@ export default function LoginPage({ onNavigate }) {
                   background: inputReady ? 'linear-gradient(135deg, var(--primary), var(--primary-dark))' : theme.bgAccent,
                   border: 'none', borderRadius: 10,
                   color: inputReady ? '#fff' : theme.textFaint,
-                  fontFamily: "'Space Mono',monospace", fontSize: 11,
+                  fontFamily: "'Space Mono',monospace", fontSize: fm.base,
                   letterSpacing: 2, textTransform: 'uppercase',
                   cursor: inputReady ? 'pointer' : 'not-allowed',
                   boxShadow: inputReady ? '0 8px 24px rgba(0,0,0,0.2)' : 'none',
@@ -167,36 +174,36 @@ export default function LoginPage({ onNavigate }) {
 
               {/* Info box */}
               <div style={{ marginTop: 16, padding: '10px 12px', background: 'rgba(0,0,0,0.04)', border: `1px solid ${theme.border}`, borderRadius: 8 }}>
-                <div style={{ color: theme.textMuted, fontSize: 9, fontFamily: "'Space Mono',monospace", lineHeight: 1.8 }}>
+                <div style={{ color: theme.textMuted, fontSize: fm.xs, fontFamily: "'Space Mono',monospace", lineHeight: 1.8 }}>
                   📱 We'll send a 6-digit OTP code to verify your identity.
                 </div>
               </div>
 
               {/* Register Link */}
-<div style={{ marginTop: 20, paddingTop: 16, borderTop: `1px solid ${theme.border}`, textAlign: 'center' }}>
-  <span style={{ color: theme.textMuted, fontSize: 11, fontFamily: "'Space Mono',monospace" }}>
-    New customer?{' '}
-  </span>
-  <button
-    onClick={() => {
-      console.log("Register button clicked!");   // Debug
-      onNavigate('register');
-    }}
-    style={{
-      background: 'none', 
-      border: 'none',
-      color: 'var(--primary)', 
-      fontSize: 11,
-      cursor: 'pointer', 
-      fontFamily: "'Space Mono',monospace",
-      fontWeight: 700, 
-      letterSpacing: 1,
-      padding: 0,
-    }}
-  >
-    Register →
-  </button>
-</div>
+              <div style={{ marginTop: 20, paddingTop: 16, borderTop: `1px solid ${theme.border}`, textAlign: 'center' }}>
+                <span style={{ color: theme.textMuted, fontSize: fm.base, fontFamily: "'Space Mono',monospace" }}>
+                  New customer?{' '}
+                </span>
+                <button
+                  onClick={() => {
+                    console.log("Register button clicked!");
+                    onNavigate('register');
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--primary)',
+                    fontSize: fm.base,
+                    cursor: 'pointer',
+                    fontFamily: "'Space Mono',monospace",
+                    fontWeight: 700,
+                    letterSpacing: 1,
+                    padding: 0,
+                  }}
+                >
+                  Register →
+                </button>
+              </div>
             </>
           )}
 
@@ -205,16 +212,16 @@ export default function LoginPage({ onNavigate }) {
             <>
               {devOtp && (
                 <div style={{ background: 'rgba(0,200,100,0.08)', border: '1px solid rgba(0,200,100,0.2)', borderRadius: 10, padding: '10px 14px', marginBottom: 16, textAlign: 'center' }}>
-                  <p style={{ color: '#00c864', fontSize: 10, fontFamily: "'Space Mono',monospace", marginBottom: 4 }}>DEV MODE — YOUR OTP</p>
-                  <p style={{ color: '#00c864', fontFamily: "'Bebas Neue',sans-serif", fontSize: 32, letterSpacing: 8 }}>{devOtp}</p>
+                  <p style={{ color: '#00c864', fontSize: fm.xs, fontFamily: "'Space Mono',monospace", marginBottom: 4 }}>DEV MODE — YOUR OTP</p>
+                  <p style={{ color: '#00c864', fontFamily: "'Bebas Neue',sans-serif", fontSize: fh.h3, letterSpacing: 8 }}>{devOtp}</p>
                 </div>
               )}
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'rgba(0,0,0,0.04)', border: `1px solid ${theme.border}`, borderRadius: 10, marginBottom: 20 }}>
                 <span style={{ fontSize: 18 }}>📱</span>
                 <div>
-                  <div style={{ color: theme.text, fontSize: 12, fontWeight: 600 }}>{maskedPhone || input}</div>
-                  <div style={{ color: theme.textMuted, fontSize: 10, fontFamily: "'Space Mono',monospace" }}>
+                  <div style={{ color: theme.text, fontSize: fs.sm, fontWeight: 600 }}>{maskedPhone || input}</div>
+                  <div style={{ color: theme.textMuted, fontSize: fm.xs, fontFamily: "'Space Mono',monospace" }}>
                     OTP sent to your registered mobile number
                   </div>
                 </div>
@@ -232,7 +239,7 @@ export default function LoginPage({ onNavigate }) {
                     style={{
                       ...inp,
                       width: isMobile ? 42 : 48, height: isMobile ? 48 : 54,
-                      textAlign: 'center', fontSize: 20, fontWeight: 900,
+                      textAlign: 'center', fontSize: fs.xl, fontWeight: 900,
                       borderWidth: digit ? 2 : 1,
                       borderColor: digit ? primary : theme.border,
                     }}
@@ -242,13 +249,13 @@ export default function LoginPage({ onNavigate }) {
 
               <div style={{ textAlign: 'center', marginBottom: 20 }}>
                 {timer > 0 ? (
-                  <span style={{ color: theme.textMuted, fontSize: 12, fontFamily: "'Space Mono',monospace" }}>
+                  <span style={{ color: theme.textMuted, fontSize: fs.sm, fontFamily: "'Space Mono',monospace" }}>
                     Resend in <span style={{ color: primary }}>{timer}s</span>
                   </span>
                 ) : (
                   <button
                     onClick={() => { setTimer(60); setOtp(['','','','','','']); handleSendOTP(); }}
-                    style={{ background: 'none', border: 'none', color: primary, fontSize: 12, cursor: 'pointer', fontFamily: "'Space Mono',monospace" }}
+                    style={{ background: 'none', border: 'none', color: primary, fontSize: fs.sm, cursor: 'pointer', fontFamily: "'Space Mono',monospace" }}
                   >
                     Resend OTP →
                   </button>
@@ -256,7 +263,7 @@ export default function LoginPage({ onNavigate }) {
               </div>
 
               {error && (
-                <div style={{ color: theme.errorText, fontSize: 11, marginBottom: 12, fontFamily: "'Space Mono',monospace" }}>
+                <div style={{ color: theme.errorText, fontSize: fm.base, marginBottom: 12, fontFamily: "'Space Mono',monospace" }}>
                   ⚠ {error}
                 </div>
               )}
@@ -269,7 +276,7 @@ export default function LoginPage({ onNavigate }) {
                   background: otpReady ? 'linear-gradient(135deg, var(--primary), var(--primary-dark))' : theme.bgAccent,
                   border: 'none', borderRadius: 10,
                   color: otpReady ? '#fff' : theme.textFaint,
-                  fontFamily: "'Space Mono',monospace", fontSize: 11,
+                  fontFamily: "'Space Mono',monospace", fontSize: fm.base,
                   letterSpacing: 2, textTransform: 'uppercase',
                   cursor: otpReady ? 'pointer' : 'not-allowed',
                   boxShadow: otpReady ? '0 8px 24px rgba(0,0,0,0.2)' : 'none',
@@ -282,7 +289,7 @@ export default function LoginPage({ onNavigate }) {
 
               <button
                 onClick={() => { setStep('phone'); setOtp(['','','','','','']); setError(''); setDevOtp(''); setMaskedPhone(''); }}
-                style={{ width: '100%', marginTop: 10, padding: '10px', background: 'none', border: 'none', color: theme.textMuted, fontSize: 12, cursor: 'pointer', fontFamily: "'Space Mono',monospace" }}
+                style={{ width: '100%', marginTop: 10, padding: '10px', background: 'none', border: 'none', color: theme.textMuted, fontSize: fs.sm, cursor: 'pointer', fontFamily: "'Space Mono',monospace" }}
               >
                 ← Change details
               </button>

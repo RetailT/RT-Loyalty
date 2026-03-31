@@ -2,14 +2,15 @@ import React, { useState, useRef } from 'react';
 import { useTheme, useCardHover } from '../context/ThemeContext';
 import useResponsive from '../hooks/useResponsive';
 import { registerCustomer } from '../api';
+import { fs, fh, fm } from '../utils/fontScale';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Sub-components — defined OUTSIDE main component to prevent focus loss bug
 // ─────────────────────────────────────────────────────────────────────────────
 
-function Field({ label, value, onChange, placeholder, required, type = 'text', error, hintText, style = {}, inp, theme, primary, fieldRef }) {
+function Field({ label, value, onChange, placeholder, required, type = 'text', error, hintText, style = {}, inp, theme, primary, fieldRef, maxLength, inputMode, onKeyDown }) {
   const labelSt = {
-    display: 'block', color: theme.textMuted, fontSize: 10,
+    display: 'block', color: theme.textMuted, fontSize: fm.xs,
     letterSpacing: 2, textTransform: 'uppercase',
     fontFamily: "'Space Mono',monospace", marginBottom: 8,
   };
@@ -23,9 +24,12 @@ function Field({ label, value, onChange, placeholder, required, type = 'text', e
         type={type}
         value={value}
         onChange={e => onChange(e.target.value)}
+        onKeyDown={onKeyDown}
         placeholder={placeholder}
+        maxLength={maxLength}
+        inputMode={inputMode}
         style={{
-          ...inp, width: '100%', padding: '12px 14px', fontSize: 13,
+          ...inp, width: '100%', padding: '12px 14px', fontSize: fs.base,
           boxSizing: 'border-box',
           borderColor: error ? theme.errorText : theme.border,
         }}
@@ -33,11 +37,11 @@ function Field({ label, value, onChange, placeholder, required, type = 'text', e
         onBlur={e  => e.target.style.borderColor = error ? theme.errorText : theme.border}
       />
       {error ? (
-        <div style={{ color: theme.errorText, fontSize: 10, marginTop: 4, fontFamily: "'Space Mono',monospace" }}>
+        <div style={{ color: theme.errorText, fontSize: fm.xs, marginTop: 4, fontFamily: "'Space Mono',monospace" }}>
           ⚠ {error}
         </div>
       ) : hintText ? (
-        <div style={{ color: theme.textMuted, fontSize: 10, marginTop: 4, fontFamily: "'Space Mono',monospace", opacity: 0.7 }}>
+        <div style={{ color: theme.textMuted, fontSize: fm.xs, marginTop: 4, fontFamily: "'Space Mono',monospace", opacity: 0.7 }}>
           {hintText}
         </div>
       ) : null}
@@ -47,7 +51,7 @@ function Field({ label, value, onChange, placeholder, required, type = 'text', e
 
 function SelectField({ label, value, onChange, options, required, style = {}, inp, theme, primary }) {
   const labelSt = {
-    display: 'block', color: theme.textMuted, fontSize: 10,
+    display: 'block', color: theme.textMuted, fontSize: fm.xs,
     letterSpacing: 2, textTransform: 'uppercase',
     fontFamily: "'Space Mono',monospace", marginBottom: 8,
   };
@@ -60,7 +64,7 @@ function SelectField({ label, value, onChange, options, required, style = {}, in
         value={value}
         onChange={e => onChange(e.target.value)}
         style={{
-          ...inp, width: '100%', padding: '12px 14px', fontSize: 13,
+          ...inp, width: '100%', padding: '12px 14px', fontSize: fs.base,
           boxSizing: 'border-box', cursor: 'pointer', appearance: 'none',
           backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
           backgroundRepeat: 'no-repeat', backgroundPosition: 'right 14px center',
@@ -70,14 +74,7 @@ function SelectField({ label, value, onChange, options, required, style = {}, in
         onBlur={e  => e.target.style.borderColor = theme.border}
       >
         {options.map(o => (
-          <option
-            key={o.value}
-            value={o.value}
-            style={{
-              background: inp.background,
-              color: theme.text,
-            }}
-          >
+          <option key={o.value} value={o.value} style={{ background: inp.background, color: theme.text }}>
             {o.label}
           </option>
         ))}
@@ -88,7 +85,7 @@ function SelectField({ label, value, onChange, options, required, style = {}, in
 
 function TextArea({ label, value, onChange, placeholder, inp, theme, primary }) {
   const labelSt = {
-    display: 'block', color: theme.textMuted, fontSize: 10,
+    display: 'block', color: theme.textMuted, fontSize: fm.xs,
     letterSpacing: 2, textTransform: 'uppercase',
     fontFamily: "'Space Mono',monospace", marginBottom: 8,
   };
@@ -101,7 +98,7 @@ function TextArea({ label, value, onChange, placeholder, inp, theme, primary }) 
         placeholder={placeholder}
         rows={2}
         style={{
-          ...inp, width: '100%', padding: '12px 14px', fontSize: 13,
+          ...inp, width: '100%', padding: '12px 14px', fontSize: fs.base,
           boxSizing: 'border-box', resize: 'vertical', minHeight: 64,
         }}
         onFocus={e => e.target.style.borderColor = primary}
@@ -116,7 +113,7 @@ function SectionDivider({ title, theme, primary }) {
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '24px 0 16px' }}>
       <div style={{ width: 3, height: 14, background: primary, borderRadius: 2 }} />
       <span style={{
-        color: primary, fontSize: 9, letterSpacing: 3,
+        color: primary, fontSize: fm.xs, letterSpacing: 3,
         textTransform: 'uppercase', fontFamily: "'Space Mono',monospace", fontWeight: 700,
       }}>{title}</span>
       <div style={{ flex: 1, height: 1, background: theme.border }} />
@@ -157,6 +154,29 @@ const CIVIL_OPTIONS = [
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Phone number helpers — numbers only, max 10 digits
+// ─────────────────────────────────────────────────────────────────────────────
+
+// onChange: strip non-digits, cap at 10
+const handlePhoneChange = (val, setter, clearErrFn) => {
+  const digitsOnly = val.replace(/\D/g, '').slice(0, 10);
+  setter(digitsOnly);
+  if (clearErrFn) clearErrFn();
+};
+
+// onKeyDown: block non-numeric keys (allow control keys & shortcuts)
+const phoneKeyDown = (e) => {
+  const controlKeys = [
+    'Backspace', 'Delete', 'Tab', 'Escape', 'Enter',
+    'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
+    'Home', 'End',
+  ];
+  if (controlKeys.includes(e.key)) return;
+  if (e.ctrlKey || e.metaKey) return; // allow Ctrl+C, Ctrl+V, etc.
+  if (!/^\d$/.test(e.key)) e.preventDefault();
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Main Component
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -177,7 +197,7 @@ export default function RegisterPage({ onNavigate }) {
 
   const shared = { inp, theme, primary };
 
-  // ── Field refs for auto-focus on error ──────────────────────────────────────
+  // ── Field refs for auto-focus on error ────────────────────────────────────
   const refs = {
     custDisplayName: useRef(null),
     custFullName:    useRef(null),
@@ -211,6 +231,18 @@ export default function RegisterPage({ onNavigate }) {
   const set      = (key) => (val) => setForm(f => ({ ...f, [key]: val }));
   const clearErr = (key) => setErrors(e => ({ ...e, [key]: '' }));
 
+  // ── Focus first error field ────────────────────────────────────────────────
+  const focusFirstError = (errorObj) => {
+    const priority = ['custDisplayName', 'custFullName', 'mobileNo', 'nic', 'passport'];
+    for (const key of priority) {
+      if (errorObj[key] && refs[key]?.current) {
+        refs[key].current.focus();
+        refs[key].current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        break;
+      }
+    }
+  };
+
   const validate = () => {
     const e = {};
     if (!form.custDisplayName.trim())
@@ -235,31 +267,40 @@ export default function RegisterPage({ onNavigate }) {
   const handleSubmit = async () => {
     const e = validate();
     setErrors(e);
-
-    // ── Focus first error field ────────────────────────────────────────────────
-    // Priority order matches visual top-to-bottom order in the form
-    const focusPriority = ['custDisplayName', 'custFullName', 'mobileNo', 'nic', 'passport'];
-    for (const key of focusPriority) {
-      if (e[key] && refs[key]?.current) {
-        refs[key].current.focus();
-        refs[key].current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        break;
-      }
-    }
-
+    focusFirstError(e);
     if (Object.keys(e).length > 0) return;
+
     setLoading(true);
     try {
       await registerCustomer(form);
       setDone(true);
     } catch (err) {
-      setErrors({ submit: err.message || 'Registration failed. Please try again.' });
+      const dupFieldMap = {
+        mobile:   'mobileNo',
+        nic:      'nic',
+        passport: 'passport',
+      };
+
+      let newErrors = {};
+
+      if (err.field && dupFieldMap[err.field]) {
+        const formKey = dupFieldMap[err.field];
+        newErrors[formKey] = err.message;
+        setErrors(newErrors);
+        if (refs[formKey]?.current) {
+          refs[formKey].current.focus();
+          refs[formKey].current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      } else {
+        newErrors.submit = err.message || 'Registration failed. Please try again.';
+        setErrors(newErrors);
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  // ── Pending Approval Screen ──────────────────────────────────────────────────
+  // ── Pending Approval Screen ────────────────────────────────────────────────
   if (done) {
     return (
       <div style={{
@@ -280,7 +321,7 @@ export default function RegisterPage({ onNavigate }) {
 
             <h2 style={{
               color: theme.text, fontFamily: "'Bebas Neue',sans-serif",
-              fontSize: 26, letterSpacing: 3, marginBottom: 12,
+              fontSize: fh.h4, letterSpacing: 3, marginBottom: 12,
             }}>
               REQUEST SUBMITTED
             </h2>
@@ -292,7 +333,7 @@ export default function RegisterPage({ onNavigate }) {
               borderRadius: 20, marginBottom: 20,
             }}>
               <span style={{
-                color: '#ffb400', fontSize: 9, letterSpacing: 3,
+                color: '#ffb400', fontSize: fm.xs, letterSpacing: 3,
                 fontFamily: "'Space Mono',monospace", textTransform: 'uppercase',
               }}>
                 Pending Approval
@@ -300,7 +341,7 @@ export default function RegisterPage({ onNavigate }) {
             </div>
 
             <p style={{
-              color: theme.textMuted, fontSize: 12,
+              color: theme.textMuted, fontSize: fs.sm,
               fontFamily: "'Space Mono',monospace",
               lineHeight: 1.9, marginBottom: 28,
             }}>
@@ -315,7 +356,7 @@ export default function RegisterPage({ onNavigate }) {
               border: `1px solid ${theme.border}`,
               borderRadius: 10, textAlign: 'left',
             }}>
-              <div style={{ color: theme.textMuted, fontSize: 10, fontFamily: "'Space Mono',monospace", lineHeight: 2 }}>
+              <div style={{ color: theme.textMuted, fontSize: fm.xs, fontFamily: "'Space Mono',monospace", lineHeight: 2 }}>
                 <div>&nbsp;Name &nbsp;&nbsp;— <span style={{ color: theme.text }}>{form.custFullName}</span></div>
                 <div>&nbsp;Mobile — <span style={{ color: theme.text }}>{form.mobileNo}</span></div>
                 {form.nic && <div>&nbsp;NIC &nbsp;&nbsp;&nbsp;— <span style={{ color: theme.text }}>{form.nic}</span></div>}
@@ -328,7 +369,7 @@ export default function RegisterPage({ onNavigate }) {
                 width: '100%', padding: '14px',
                 background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))',
                 border: 'none', borderRadius: 10, color: '#fff',
-                fontFamily: "'Space Mono',monospace", fontSize: 11,
+                fontFamily: "'Space Mono',monospace", fontSize: fm.base,
                 letterSpacing: 2, textTransform: 'uppercase',
                 cursor: 'pointer', boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
               }}
@@ -343,7 +384,7 @@ export default function RegisterPage({ onNavigate }) {
     );
   }
 
-  // ── Form ─────────────────────────────────────────────────────────────────────
+  // ── Form ───────────────────────────────────────────────────────────────────
   return (
     <div style={{
       minHeight: 'calc(100vh - 64px)',
@@ -363,10 +404,10 @@ export default function RegisterPage({ onNavigate }) {
               boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
               fontFamily: "'Bebas Neue',sans-serif", letterSpacing: 1,
             }}>RT</div>
-            <h1 style={{ color: theme.text, fontFamily: "'Bebas Neue',sans-serif", fontSize: 26, letterSpacing: 2, marginBottom: 4 }}>
+            <h1 style={{ color: theme.text, fontFamily: "'Bebas Neue',sans-serif", fontSize: fh.h4, letterSpacing: 2, marginBottom: 4 }}>
               NEW REGISTRATION
             </h1>
-            <p style={{ color: theme.textMuted, fontSize: 12, fontFamily: "'Space Mono',monospace" }}>
+            <p style={{ color: theme.textMuted, fontSize: fm.sm, fontFamily: "'Space Mono',monospace" }}>
               Create your loyalty account
             </p>
           </div>
@@ -433,19 +474,41 @@ export default function RegisterPage({ onNavigate }) {
           <SectionDivider title="Contact Details" {...shared} />
 
           <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+            {/* Mobile No — numbers only, max 10 */}
             <Field
               label="Mobile No" value={form.mobileNo} required
-              onChange={v => { set('mobileNo')(v); clearErr('mobileNo'); }}
+              onChange={v => handlePhoneChange(v, set('mobileNo'), () => clearErr('mobileNo'))}
+              onKeyDown={phoneKeyDown}
               placeholder="07XXXXXXXX"
               error={errors.mobileNo}
               fieldRef={refs.mobileNo}
+              maxLength={10}
+              inputMode="numeric"
               {...shared}
             />
-            <Field label="Home No" value={form.homeNo} onChange={set('homeNo')} placeholder="0XXXXXXXXX" {...shared} />
+            {/* Home No — numbers only, max 10 */}
+            <Field
+              label="Home No" value={form.homeNo}
+              onChange={v => handlePhoneChange(v, set('homeNo'), null)}
+              onKeyDown={phoneKeyDown}
+              placeholder="0XXXXXXXXX"
+              maxLength={10}
+              inputMode="numeric"
+              {...shared}
+            />
           </div>
 
           <div style={{ marginBottom: 14 }}>
-            <Field label="Office No" value={form.officeNo} onChange={set('officeNo')} placeholder="0XXXXXXXXX" {...shared} />
+            {/* Office No — numbers only, max 10 */}
+            <Field
+              label="Office No" value={form.officeNo}
+              onChange={v => handlePhoneChange(v, set('officeNo'), null)}
+              onKeyDown={phoneKeyDown}
+              placeholder="0XXXXXXXXX"
+              maxLength={10}
+              inputMode="numeric"
+              {...shared}
+            />
           </div>
 
           {/* ── ADDRESS ── */}
@@ -463,8 +526,16 @@ export default function RegisterPage({ onNavigate }) {
             <Field label="City" value={form.city} onChange={set('city')} placeholder="e.g. Colombo" {...shared} />
           </div>
 
+          {/* Generic submit error */}
           {errors.submit && (
-            <div style={{ color: theme.errorText, fontSize: 11, marginBottom: 12, fontFamily: "'Space Mono',monospace" }}>
+            <div style={{
+              color: theme.errorText, fontSize: fm.base, marginBottom: 12,
+              fontFamily: "'Space Mono',monospace",
+              padding: '10px 14px',
+              background: 'rgba(255,77,77,0.06)',
+              border: '1px solid rgba(255,77,77,0.2)',
+              borderRadius: 8,
+            }}>
               ⚠ {errors.submit}
             </div>
           )}
@@ -479,7 +550,7 @@ export default function RegisterPage({ onNavigate }) {
                 background: !loading ? 'linear-gradient(135deg, var(--primary), var(--primary-dark))' : theme.bgAccent,
                 border: 'none', borderRadius: 10,
                 color: !loading ? '#fff' : theme.textFaint,
-                fontFamily: "'Space Mono',monospace", fontSize: 11,
+                fontFamily: "'Space Mono',monospace", fontSize: fm.base,
                 letterSpacing: 2, textTransform: 'uppercase',
                 cursor: !loading ? 'pointer' : 'not-allowed',
                 boxShadow: !loading ? '0 8px 24px rgba(0,0,0,0.2)' : 'none',
@@ -491,14 +562,14 @@ export default function RegisterPage({ onNavigate }) {
             </button>
 
             <div style={{ marginTop: 20, paddingTop: 16, borderTop: `1px solid ${theme.border}`, textAlign: 'center' }}>
-              <span style={{ color: theme.textMuted, fontSize: 11, fontFamily: "'Space Mono',monospace" }}>
+              <span style={{ color: theme.textMuted, fontSize: fm.base, fontFamily: "'Space Mono',monospace" }}>
                 Already have an account?{' '}
               </span>
               <button
                 onClick={() => onNavigate('login')}
                 style={{
                   background: 'none', border: 'none',
-                  color: 'var(--primary)', fontSize: 11,
+                  color: 'var(--primary)', fontSize: fm.base,
                   cursor: 'pointer', fontFamily: "'Space Mono',monospace",
                   fontWeight: 700, letterSpacing: 1, padding: 0,
                 }}

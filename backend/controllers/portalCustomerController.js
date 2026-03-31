@@ -48,25 +48,104 @@ async function getLoyaltyStart(posPool, loyaltyType) {
 }
 
 /**
- * isDuplicate
- * Checks tb_LOYALTYCUSTOMER_REGISTER — same NIC or Mobile for this company.
+ * checkDuplicate
+ * Checks BOTH tables for existing NIC / Mobile / Passport:
+ *   1. tb_LOYALTYCUSTOMER_MAIN    — already approved & active customers
+ *   2. tb_LOYALTYCUSTOMER_REGISTER — pending / previously submitted requests
+ *
+ * Returns an object:
+ *   { found: false }
+ *   { found: true, field: 'mobile'|'nic'|'passport', source: 'active'|'pending' }
  */
-async function isDuplicate(posPool, companyCode, nic, mobileNo) {
-  const r = await posPool.request()
-    .input('code',   sql.Char,     companyCode)
-    .input('nic',    sql.NVarChar, nic      || '')
-    .input('mobile', sql.NVarChar, mobileNo || '')
+async function checkDuplicate(posPool, companyCode, { nic, passport, mobileNo }) {
+  const nicVal      = (nic      || '').trim();
+  const passportVal = (passport || '').trim();
+  const mobileVal   = (mobileNo || '').trim();
+
+  // ── 1. Check tb_LOYALTYCUSTOMER_MAIN (active customers) ───────────────────
+  const mainResult = await posPool.request()
+    .input('code',     sql.Char,     companyCode)
+    .input('nic',      sql.NVarChar, nicVal)
+    .input('passport', sql.NVarChar, passportVal)
+    .input('mobile',   sql.NVarChar, mobileVal)
     .query(`
-      SELECT TOP 1 IDX
-      FROM dbo.tb_LOYALTYCUSTOMER_REGISTER
-      WHERE COMPANY_CODE = @code
+      SELECT TOP 1
+        CASE
+          WHEN @mobile <> '' AND LTRIM(RTRIM(MOBILENO)) = @mobile THEN 'mobile'
+          WHEN @nic    <> '' AND LTRIM(RTRIM(NIC))      = @nic    THEN 'nic'
+          WHEN @passport <> '' AND LTRIM(RTRIM(PASSPORT)) = @passport THEN 'passport'
+        END AS matched_field
+      FROM dbo.tb_LOYALTYCUSTOMER_MAIN
+      WHERE LTRIM(RTRIM(COMPANY_CODE)) = LTRIM(RTRIM(@code))
         AND (
-          (@nic    <> '' AND LTRIM(RTRIM(NIC))      = LTRIM(RTRIM(@nic)))
+          (@mobile   <> '' AND LTRIM(RTRIM(MOBILENO)) = @mobile)
           OR
-          (@mobile <> '' AND LTRIM(RTRIM(MOBILENO)) = LTRIM(RTRIM(@mobile)))
+          (@nic      <> '' AND LTRIM(RTRIM(NIC))      = @nic)
+          OR
+          (@passport <> '' AND LTRIM(RTRIM(PASSPORT)) = @passport)
         )
     `);
-  return r.recordset.length > 0;
+
+  if (mainResult.recordset.length > 0) {
+    return {
+      found:  true,
+      field:  mainResult.recordset[0].matched_field,
+      source: 'active',
+    };
+  }
+
+  // ── 2. Check tb_LOYALTYCUSTOMER_REGISTER (pending requests) ───────────────
+  const regResult = await posPool.request()
+    .input('code',     sql.Char,     companyCode)
+    .input('nic',      sql.NVarChar, nicVal)
+    .input('passport', sql.NVarChar, passportVal)
+    .input('mobile',   sql.NVarChar, mobileVal)
+    .query(`
+      SELECT TOP 1
+        CASE
+          WHEN @mobile <> '' AND LTRIM(RTRIM(MOBILENO)) = @mobile THEN 'mobile'
+          WHEN @nic    <> '' AND LTRIM(RTRIM(NIC))      = @nic    THEN 'nic'
+          WHEN @passport <> '' AND LTRIM(RTRIM(PASSPORT)) = @passport THEN 'passport'
+        END AS matched_field
+      FROM dbo.tb_LOYALTYCUSTOMER_REGISTER
+      WHERE LTRIM(RTRIM(COMPANY_CODE)) = LTRIM(RTRIM(@code))
+        AND (
+          (@mobile   <> '' AND LTRIM(RTRIM(MOBILENO)) = @mobile)
+          OR
+          (@nic      <> '' AND LTRIM(RTRIM(NIC))      = @nic)
+          OR
+          (@passport <> '' AND LTRIM(RTRIM(PASSPORT)) = @passport)
+        )
+    `);
+
+  if (regResult.recordset.length > 0) {
+    return {
+      found:  true,
+      field:  regResult.recordset[0].matched_field,
+      source: 'pending',
+    };
+  }
+
+  return { found: false };
+}
+
+/**
+ * buildDuplicateMessage
+ * Returns a user-friendly error message based on which field matched
+ * and whether it was found in the active or pending table.
+ */
+function buildDuplicateMessage(field, source) {
+  const fieldLabel = {
+    mobile:   'Mobile number',
+    nic:      'NIC number',
+    passport: 'Passport number',
+  }[field] || 'Details';
+
+  if (source === 'active') {
+    return `${fieldLabel} is already registered as an active loyalty customer. Please log in instead.`;
+  }
+  // source === 'pending'
+  return `${fieldLabel} already has a pending registration request. Please wait for shop approval or contact the shop.`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -116,28 +195,35 @@ exports.registerCustomer = async (req, res) => {
 
     const posPool = await getPosbackPool();
 
-    // ── Duplicate check ───────────────────────────────────────────────────────
-    const dup = await isDuplicate(posPool, companyCode, nic.trim(), mobileNo.trim());
-    if (dup)
+    // ── Duplicate check — both MAIN and REGISTER tables ───────────────────────
+    const dup = await checkDuplicate(posPool, companyCode, {
+      nic,
+      passport,
+      mobileNo,
+    });
+
+    if (dup.found) {
       return res.status(409).json({
         success: false,
-        message: 'A registration request with this NIC or Mobile number already exists.',
+        message: buildDuplicateMessage(dup.field, dup.source),
+        field:   dup.field,   // frontend can highlight the specific field
+        source:  dup.source,  // 'active' | 'pending'
       });
+    }
 
-    // ── Parse DOB — db column is datetime ────────────────────────────────────
+    // ── Parse DOB ─────────────────────────────────────────────────────────────
     let dobDate = null;
     if (dob && dob.trim()) {
       const parsed = new Date(dob);
       if (!isNaN(parsed.getTime())) dobDate = parsed;
     }
 
-    // ── Truncate char(10) fields — HOMENO / OFFICENO ──────────────────────────
+    // ── Truncate char(10) fields ──────────────────────────────────────────────
     const homeNoVal   = (homeNo.trim()   || '').substring(0, 10);
     const officeNoVal = (officeNo.trim() || '').substring(0, 10);
 
-    // ── Insert into tb_LOYALTYCUSTOMER_REGISTER ───────────────────────────────
+    // ── Insert into tb_LOYALTYCUSTOMER_REGISTER (STATUS = 'PENDING') ──────────
     await posPool.request()
-      // customer info
       .input('type',             sql.NVarChar(20),  type.trim())
       .input('custDisplayName',  sql.NVarChar(500), custDisplayName.trim())
       .input('custFullName',     sql.NVarChar(500), custFullName.trim())
@@ -153,66 +239,30 @@ exports.registerCustomer = async (req, res) => {
       .input('homeNo',           sql.Char(10),      homeNoVal)
       .input('officeNo',         sql.Char(10),      officeNoVal)
       .input('mobileNo',         sql.NVarChar(50),  mobileNo.trim())
-      // company
       .input('companyCode',      sql.Char(10),      companyCode)
       .input('companyName',      sql.NVarChar(50),  companyName.substring(0, 50))
-      // control fields
-      .input('status',           sql.NVarChar(20),  'PENDING')
-      .input('createUser',       sql.NVarChar(50),  'PORTAL')
-      .input('dateActive',       sql.Char(1),       'F')        // not yet active — shop approves
+      .input('dateActive',       sql.Char(1),       'F')
       .query(`
         INSERT INTO dbo.tb_LOYALTYCUSTOMER_REGISTER (
-          TYPE,
-          CUSTDISPLAY_NAME,
-          CUSTFULL_NAME,
-          DOB,
-          POSTAL_ADDRESS,
-          PERMANANT_ADDRESS,
-          CITY,
-          CIVIL_STATUS,
-          NIC,
-          PASSPORT,
-          EMAIL,
-          OCCUPATION,
-          HOMENO,
-          OFFICENO,
-          MOBILENO,
-          COMPANY_CODE,
-          COMPANY_NAME,
-          STATUS,
-          CREATE_USER,
-          CREATE_DATE,
-          CREATE_TIME,
-          DATEACTIVE,
-          INSERT_TIME
+          TYPE, CUSTDISPLAY_NAME, CUSTFULL_NAME, DOB,
+          POSTAL_ADDRESS, PERMANANT_ADDRESS, CITY, CIVIL_STATUS,
+          NIC, PASSPORT, EMAIL, OCCUPATION,
+          HOMENO, OFFICENO, MOBILENO,
+          COMPANY_CODE, COMPANY_NAME,
+          STATUS, CREATE_USER, CREATE_DATE, CREATE_TIME,
+          DATEACTIVE, INSERT_TIME
         ) VALUES (
-          @type,
-          @custDisplayName,
-          @custFullName,
-          COALESCE(@dob, '1900-01-01 00:00:00'),
-          @postalAddress,
-          @permanentAddress,
-          @city,
-          @civilStatus,
-          @nic,
-          @passport,
-          @email,
-          @occupation,
-          @homeNo,
-          @officeNo,
-          @mobileNo,
-          @companyCode,
-          @companyName,
-          @status,
-          @createUser,
-          GETDATE(),
-          GETDATE(),
-          @dateActive,
-          GETDATE()
+          @type, @custDisplayName, @custFullName, COALESCE(@dob, '1900-01-01 00:00:00'),
+          @postalAddress, @permanentAddress, @city, @civilStatus,
+          @nic, @passport, @email, @occupation,
+          @homeNo, @officeNo, @mobileNo,
+          @companyCode, @companyName,
+          'PENDING', 'PORTAL', GETDATE(), GETDATE(),
+          @dateActive, GETDATE()
         )
       `);
 
-    console.log(`[registerCustomer] Pending registration: ${custFullName.trim()} | ${mobileNo.trim()} | company: ${companyCode}`);
+    console.log(`[registerCustomer] Pending: ${custFullName.trim()} | ${mobileNo.trim()} | company: ${companyCode}`);
 
     res.status(201).json({
       success: true,
