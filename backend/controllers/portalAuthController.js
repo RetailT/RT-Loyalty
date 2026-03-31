@@ -1,4 +1,4 @@
-const { getPosbackPool, getLoyaltyPool, sql } = require('../config/userdb');
+const { sql } = require('../config/userdb');
 const jwt = require('jsonwebtoken');
 const { sendOtpSMS } = require('../utils/sms');
 
@@ -37,13 +37,8 @@ async function getPointsSummary(posPool, serialNo, posbackCode) {
   };
 }
 
-/**
- * Get LOYALTY_START prefix from tb_LOYALTYMAIN for the given loyalty type.
- * QR value = LOYALTY_START + SERIALNO  (e.g. ';0000000015')
- */
-async function getLoyaltyStart(posPool, loyaltyType, companyCode) {
+async function getLoyaltyStart(posPool, loyaltyType) {
   try {
-    // Match by LOYALTY_TYPE string OR by IDX (some records store numeric IDX as loyalty type)
     const r = await posPool.request()
       .input('ltype', sql.NVarChar, (loyaltyType || '').trim())
       .query(`
@@ -62,15 +57,13 @@ async function getLoyaltyStart(posPool, loyaltyType, companyCode) {
 
 function shapeCustomer(row, points, loyaltyStart) {
   const serialNo = row.SERIALNO;
-  // QR value = prefix + serialNo  (e.g. ';' + '0000000015' = ';0000000015')
-  // loyaltyStart can be ';' which is truthy — always concat if defined
   const qrValue  = (loyaltyStart !== undefined && loyaltyStart !== null)
     ? `${loyaltyStart}${serialNo}`
     : serialNo;
 
   return {
     serialNo,
-    qrValue,                          // ← used for QR code generation
+    qrValue,
     name:        row.CUSTDISPLAY_NAME || row.CUSTFULL_NAME,
     email:       row.EMAIL            || '',
     phone:       row.MOBILENO,
@@ -85,36 +78,85 @@ function shapeCustomer(row, points, loyaltyStart) {
   };
 }
 
-async function logAction(posPool, {
-  username,
-  customerName,
-  companyCode,
-  companyName,
-  action,
-  otpCode    = '',
-  setLogin   = false,
-  setLogout  = false,
-}) {
+// ─────────────────────────────────────────────────────────────────────────────
+// Logging helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * logOtpRequest — OTP_REQUEST row insert
+ * LOGIN_TIME + LOGOUT_TIME = GETDATE() (NOT NULL satisfy)
+ */
+async function logOtpRequest(pool, { username, customerName, companyCode, companyName, otpCode }) {
   try {
-    await posPool.request()
-      .input('username',  sql.NVarChar, username     || '')
-      .input('custName',  sql.NVarChar, customerName || '')
-      .input('compCode',  sql.NVarChar, companyCode  || '')
-      .input('compName',  sql.NVarChar, companyName  || '')
-      .input('action',    sql.NVarChar, action       || '')
-      .input('otp',       sql.NVarChar, otpCode      || '')
+    await pool.request()
+      .input('username', sql.NVarChar(50),  username     || '')
+      .input('custName', sql.NVarChar(100), customerName || '')
+      .input('compCode', sql.NVarChar(20),  companyCode  || '')
+      .input('compName', sql.NVarChar(100), companyName  || '')
+      .input('otpCode',  sql.NVarChar(10),  otpCode      || '')
       .query(`
         INSERT INTO dbo.tb_LOYALTY_USERLOG
           (USERNAME, CUSTOMER_NAME, COMPANY_CODE, COMPANY_NAME,
-          ACTION, OTP_CODE, LOGIN_TIME, LOGOUT_TIME)
+           ACTION, OTP_CODE, LOGIN_TIME, LOGOUT_TIME, INSERT_TIME)
         VALUES
           (@username, @custName, @compCode, @compName,
-          @action,   @otp,
-          ${setLogin  ? 'GETDATE()' : 'NULL'},
-          ${setLogout ? 'GETDATE()' : 'NULL'})
+           'OTP_REQUEST', @otpCode, GETDATE(), GETDATE(), GETDATE())
       `);
   } catch (err) {
-    console.error('[logAction]', err.message);
+    console.error('[logOtpRequest]', err.message);
+  }
+}
+
+/**
+ * logLogin — LOGIN row insert
+ * LOGIN_TIME  = GETDATE() (actual login time)
+ * LOGOUT_TIME = GETDATE() (placeholder — logout UPDATEs this row's LOGOUT_TIME to actual logout time)
+ */
+async function logLogin(pool, { username, customerName, companyCode, companyName, otpCode }) {
+  try {
+    await pool.request()
+      .input('username', sql.NVarChar(50),  username     || '')
+      .input('custName', sql.NVarChar(100), customerName || '')
+      .input('compCode', sql.NVarChar(20),  companyCode  || '')
+      .input('compName', sql.NVarChar(100), companyName  || '')
+      .input('otpCode',  sql.NVarChar(10),  otpCode      || '')
+      .query(`
+        INSERT INTO dbo.tb_LOYALTY_USERLOG
+          (USERNAME, CUSTOMER_NAME, COMPANY_CODE, COMPANY_NAME,
+           ACTION, OTP_CODE, LOGIN_TIME, LOGOUT_TIME, INSERT_TIME)
+        VALUES
+          (@username, @custName, @compCode, @compName,
+           'LOGIN', @otpCode, GETDATE(), GETDATE(), GETDATE())
+      `);
+  } catch (err) {
+    console.error('[logLogin]', err.message);
+  }
+}
+
+/**
+ * logLogout — when customer logout
+ * Most recent LOGIN row, LOGOUT_TIME = GETDATE() UPDATED
+ * (same row — login + logout)
+ */
+async function logLogout(pool, { username, companyCode }) {
+  try {
+    await pool.request()
+      .input('username', sql.NVarChar(50), username    || '')
+      .input('compCode', sql.NVarChar(20), companyCode || '')
+      .query(`
+        UPDATE dbo.tb_LOYALTY_USERLOG
+        SET    LOGOUT_TIME = GETDATE()
+        WHERE  IDX = (
+          SELECT TOP 1 IDX
+          FROM   dbo.tb_LOYALTY_USERLOG
+          WHERE  USERNAME     = @username
+            AND  COMPANY_CODE = @compCode
+            AND  ACTION       IN ('LOGIN', 'QR_LOGIN')
+          ORDER BY IDX DESC
+        )
+      `);
+  } catch (err) {
+    console.error('[logLogout]', err.message);
   }
 }
 
@@ -168,16 +210,15 @@ exports.sendOtp = async (req, res) => {
       });
     }
 
-    const loyPool = await getLoyaltyPool();
-
-    const rateCheck = await loyPool.request()
+    // OTP rate check
+    const rateCheck = await posPool.request()
       .input('phone', sql.NVarChar, mobileNo)
       .input('code',  sql.NVarChar, POSBACK_CODE)
       .input('mins',  sql.Int,      OTP_RATE_LIMIT_MIN)
       .input('max',   sql.Int,      OTP_RATE_LIMIT_COUNT)
       .query(`
         SELECT COUNT(*) AS cnt
-        FROM dbo.tb_OTP_SESSIONS
+        FROM dbo.tb_LOYALTY_OTP_SESSIONS
         WHERE PHONE = @phone
           AND COMPANY_CODE = @code
           AND CREATED_AT > DATEADD(MINUTE, -@mins, GETDATE())
@@ -193,31 +234,28 @@ exports.sendOtp = async (req, res) => {
     const otp     = String(Math.floor(100000 + Math.random() * 900000));
     const expires = new Date(Date.now() + OTP_TTL_MIN * 60000);
 
-    await loyPool.request()
+    await posPool.request()
       .input('phone', sql.NVarChar, mobileNo)
       .input('code',  sql.NVarChar, POSBACK_CODE)
-      .query(`DELETE FROM dbo.tb_OTP_SESSIONS WHERE PHONE = @phone AND COMPANY_CODE = @code`);
+      .query(`DELETE FROM dbo.tb_LOYALTY_OTP_SESSIONS WHERE PHONE = @phone AND COMPANY_CODE = @code`);
 
-    await loyPool.request()
+    await posPool.request()
       .input('phone',   sql.NVarChar, mobileNo)
       .input('code',    sql.NVarChar, POSBACK_CODE)
-      .input('email',   sql.NVarChar, mobileNo)
       .input('otp',     sql.NVarChar, otp)
       .input('expires', sql.DateTime, expires)
       .query(`
-        INSERT INTO dbo.tb_OTP_SESSIONS (EMAIL, PHONE, COMPANY_CODE, OTP, EXPIRES_AT, CREATED_AT)
-        VALUES (@email, @phone, @code, @otp, @expires, GETDATE())
+        INSERT INTO dbo.tb_LOYALTY_OTP_SESSIONS (PHONE, COMPANY_CODE, OTP_CODE, EXPIRES_AT, CREATED_AT)
+        VALUES (@phone, @code, @otp, @expires, GETDATE())
       `);
 
-    logAction(posPool, {
+    // ── OTP_REQUEST log ───────────────────────────────────────────────────────
+    logOtpRequest(posPool, {
       username:     mobileNo,
       customerName: custName,
       companyCode:  POSBACK_CODE,
       companyName:  shop,
-      action:       'OTP_REQUEST',
       otpCode:      otp,
-      setLogin:     true,
-      setLogout:    false,
     });
 
     try {
@@ -277,32 +315,31 @@ exports.verifyOtp = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Account not found.' });
 
     const mobileNo = custSearch.recordset[0].MOBILENO;
-    const loyPool  = await getLoyaltyPool();
 
-    const sess = await loyPool.request()
+    const sess = await posPool.request()
       .input('phone', sql.NVarChar, mobileNo)
       .input('code',  sql.NVarChar, POSBACK_CODE)
       .query(`
-        SELECT TOP 1 OTP, EXPIRES_AT
-        FROM dbo.tb_OTP_SESSIONS
+        SELECT TOP 1 OTP_CODE, EXPIRES_AT
+        FROM dbo.tb_LOYALTY_OTP_SESSIONS
         WHERE PHONE = @phone AND COMPANY_CODE = @code
       `);
 
     if (!sess.recordset.length)
       return res.status(400).json({ success: false, message: 'No OTP found. Request a new one.' });
 
-    const { OTP, EXPIRES_AT } = sess.recordset[0];
+    const { OTP_CODE, EXPIRES_AT } = sess.recordset[0];
 
     if (new Date() > new Date(EXPIRES_AT))
       return res.status(400).json({ success: false, message: 'OTP expired.' });
 
-    if (OTP.trim() !== otp.trim())
+    if (OTP_CODE.trim() !== otp.trim())
       return res.status(400).json({ success: false, message: 'Incorrect OTP.' });
 
-    await loyPool.request()
+    await posPool.request()
       .input('phone', sql.NVarChar, mobileNo)
       .input('code',  sql.NVarChar, POSBACK_CODE)
-      .query(`DELETE FROM dbo.tb_OTP_SESSIONS WHERE PHONE = @phone AND COMPANY_CODE = @code`);
+      .query(`DELETE FROM dbo.tb_LOYALTY_OTP_SESSIONS WHERE PHONE = @phone AND COMPANY_CODE = @code`);
 
     const cust = await posPool.request()
       .input('mob',  sql.NVarChar, mobileNo)
@@ -320,7 +357,7 @@ exports.verifyOtp = async (req, res) => {
 
     const row          = cust.recordset[0];
     const points       = await getPointsSummary(posPool, row.SERIALNO, POSBACK_CODE);
-    const loyaltyStart = await getLoyaltyStart(posPool, row.LOYALTY_TYPE, POSBACK_CODE);
+    const loyaltyStart = await getLoyaltyStart(posPool, row.LOYALTY_TYPE);
     const customer     = shapeCustomer(row, points, loyaltyStart);
 
     const token = jwt.sign(
@@ -336,15 +373,13 @@ exports.verifyOtp = async (req, res) => {
       { expiresIn: JWT_EXPIRES }
     );
 
-    logAction(posPool, {
+    // ── LOGIN log — row insert, LOGOUT_TIME = placeholder (updated after logout) ──
+    logLogin(posPool, {
       username:     mobileNo,
       customerName: customer.name,
       companyCode:  POSBACK_CODE,
       companyName:  customer.companyName,
-      action:       'LOGIN',
       otpCode:      otp,
-      setLogin:     true,
-      setLogout:    false,
     });
 
     console.log(`✅ Login — ${customer.name} (${customer.phone}) @ ${customer.companyName} — ${nowStr()}`);
@@ -383,7 +418,7 @@ exports.qrLogin = async (req, res) => {
 
     const row          = result.recordset[0];
     const points       = await getPointsSummary(posPool, row.SERIALNO, POSBACK_CODE);
-    const loyaltyStart = await getLoyaltyStart(posPool, row.LOYALTY_TYPE, POSBACK_CODE);
+    const loyaltyStart = await getLoyaltyStart(posPool, row.LOYALTY_TYPE);
     const customer     = shapeCustomer(row, points, loyaltyStart);
 
     const token = jwt.sign(
@@ -399,15 +434,13 @@ exports.qrLogin = async (req, res) => {
       { expiresIn: JWT_EXPIRES }
     );
 
-    logAction(posPool, {
+    // ── QR_LOGIN log ──────────────────────────────────────────────────────────
+    logLogin(posPool, {
       username:     customer.phone,
       customerName: customer.name,
       companyCode:  POSBACK_CODE,
       companyName:  customer.companyName,
-      action:       'QR_LOGIN',
       otpCode:      '',
-      setLogin:     true,
-      setLogout:    false,
     });
 
     console.log(`✅ QR Login — ${customer.name} (${customer.phone}) @ ${customer.companyName} — ${nowStr()}`);
@@ -427,15 +460,11 @@ exports.logoutPortal = async (req, res) => {
 
     if (phone) {
       const posPool = req.shopPool;
-      logAction(posPool, {
-        username:     phone,
-        customerName: name,
-        companyCode,
-        companyName,
-        action:       'LOGOUT',
-        otpCode:      '',
-        setLogin:     false,
-        setLogout:    true,
+
+      // ── Most recent LOGIN row, LOGOUT_TIME = now UPDATE ─────────────────
+      await logLogout(posPool, {
+        username:    phone,
+        companyCode: companyCode,
       });
     }
 

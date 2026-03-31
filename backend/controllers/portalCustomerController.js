@@ -1,4 +1,4 @@
-const { getPosbackPool, getLoyaltyPool, sql } = require('../config/userdb');
+const { getPosbackPool, sql } = require('../config/userdb');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -47,22 +47,11 @@ async function getLoyaltyStart(posPool, loyaltyType) {
   }
 }
 
-/**
- * checkDuplicate
- * Checks BOTH tables for existing NIC / Mobile / Passport:
- *   1. tb_LOYALTYCUSTOMER_MAIN    — already approved & active customers
- *   2. tb_LOYALTYCUSTOMER_REGISTER — pending / previously submitted requests
- *
- * Returns an object:
- *   { found: false }
- *   { found: true, field: 'mobile'|'nic'|'passport', source: 'active'|'pending' }
- */
 async function checkDuplicate(posPool, companyCode, { nic, passport, mobileNo }) {
   const nicVal      = (nic      || '').trim();
   const passportVal = (passport || '').trim();
   const mobileVal   = (mobileNo || '').trim();
 
-  // ── 1. Check tb_LOYALTYCUSTOMER_MAIN (active customers) ───────────────────
   const mainResult = await posPool.request()
     .input('code',     sql.Char,     companyCode)
     .input('nic',      sql.NVarChar, nicVal)
@@ -86,15 +75,9 @@ async function checkDuplicate(posPool, companyCode, { nic, passport, mobileNo })
         )
     `);
 
-  if (mainResult.recordset.length > 0) {
-    return {
-      found:  true,
-      field:  mainResult.recordset[0].matched_field,
-      source: 'active',
-    };
-  }
+  if (mainResult.recordset.length > 0)
+    return { found: true, field: mainResult.recordset[0].matched_field, source: 'active' };
 
-  // ── 2. Check tb_LOYALTYCUSTOMER_REGISTER (pending requests) ───────────────
   const regResult = await posPool.request()
     .input('code',     sql.Char,     companyCode)
     .input('nic',      sql.NVarChar, nicVal)
@@ -118,22 +101,12 @@ async function checkDuplicate(posPool, companyCode, { nic, passport, mobileNo })
         )
     `);
 
-  if (regResult.recordset.length > 0) {
-    return {
-      found:  true,
-      field:  regResult.recordset[0].matched_field,
-      source: 'pending',
-    };
-  }
+  if (regResult.recordset.length > 0)
+    return { found: true, field: regResult.recordset[0].matched_field, source: 'pending' };
 
   return { found: false };
 }
 
-/**
- * buildDuplicateMessage
- * Returns a user-friendly error message based on which field matched
- * and whether it was found in the active or pending table.
- */
 function buildDuplicateMessage(field, source) {
   const fieldLabel = {
     mobile:   'Mobile number',
@@ -141,15 +114,13 @@ function buildDuplicateMessage(field, source) {
     passport: 'Passport number',
   }[field] || 'Details';
 
-  if (source === 'active') {
+  if (source === 'active')
     return `${fieldLabel} is already registered as an active loyalty customer. Please log in instead.`;
-  }
-  // source === 'pending'
   return `${fieldLabel} already has a pending registration request. Please wait for shop approval or contact the shop.`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// registerCustomer — POST /api/portal/register  (public, no token required)
+// registerCustomer — POST /api/portal/register
 // ─────────────────────────────────────────────────────────────────────────────
 exports.registerCustomer = async (req, res) => {
   try {
@@ -177,7 +148,6 @@ exports.registerCustomer = async (req, res) => {
       mobileNo         = '',
     } = req.body;
 
-    // ── Server-side validation ────────────────────────────────────────────────
     if (!custFullName.trim())
       return res.status(400).json({ success: false, message: 'Full name is required.' });
 
@@ -193,36 +163,28 @@ exports.registerCustomer = async (req, res) => {
     if (hasNic && !/^(\d{9}[VvXx]|\d{12})$/.test(nic.trim()))
       return res.status(400).json({ success: false, message: 'Enter a valid NIC (9 digits + V/X, or 12 digits).' });
 
-    const posPool = await getPosbackPool();
+    // ✅ Use shopPool (per-shop POSBACK) for registration
+    const posPool = req.shopPool;
 
-    // ── Duplicate check — both MAIN and REGISTER tables ───────────────────────
-    const dup = await checkDuplicate(posPool, companyCode, {
-      nic,
-      passport,
-      mobileNo,
-    });
-
+    const dup = await checkDuplicate(posPool, companyCode, { nic, passport, mobileNo });
     if (dup.found) {
       return res.status(409).json({
         success: false,
         message: buildDuplicateMessage(dup.field, dup.source),
-        field:   dup.field,   // frontend can highlight the specific field
-        source:  dup.source,  // 'active' | 'pending'
+        field:   dup.field,
+        source:  dup.source,
       });
     }
 
-    // ── Parse DOB ─────────────────────────────────────────────────────────────
     let dobDate = null;
     if (dob && dob.trim()) {
       const parsed = new Date(dob);
       if (!isNaN(parsed.getTime())) dobDate = parsed;
     }
 
-    // ── Truncate char(10) fields ──────────────────────────────────────────────
     const homeNoVal   = (homeNo.trim()   || '').substring(0, 10);
     const officeNoVal = (officeNo.trim() || '').substring(0, 10);
 
-    // ── Insert into tb_LOYALTYCUSTOMER_REGISTER (STATUS = 'PENDING') ──────────
     await posPool.request()
       .input('type',             sql.NVarChar(20),  type.trim())
       .input('custDisplayName',  sql.NVarChar(500), custDisplayName.trim())
@@ -263,7 +225,6 @@ exports.registerCustomer = async (req, res) => {
       `);
 
     console.log(`[registerCustomer] Pending: ${custFullName.trim()} | ${mobileNo.trim()} | company: ${companyCode}`);
-
     res.status(201).json({
       success: true,
       message: 'Registration request submitted. Awaiting shop approval.',
@@ -281,8 +242,9 @@ exports.registerCustomer = async (req, res) => {
 exports.getMe = async (req, res) => {
   try {
     const { serialNo, companyCode } = req.customer;
-    const posPool = await getPosbackPool();
-    const result  = await posPool.request()
+    const posPool = req.shopPool; // ✅ POSBACK only
+
+    const result = await posPool.request()
       .input('sno',  sql.NVarChar, serialNo)
       .input('code', sql.Char,     companyCode)
       .query(`
@@ -333,7 +295,7 @@ exports.updateMe = async (req, res) => {
     const { serialNo, companyCode }        = req.customer;
     const { email, city, occupation, dob } = req.body;
 
-    const posPool = await getPosbackPool();
+    const posPool = req.shopPool; // ✅ POSBACK only
     await posPool.request()
       .input('sno',        sql.NVarChar,      serialNo)
       .input('code',       sql.Char,          companyCode)
@@ -374,7 +336,7 @@ exports.getTransactions = async (req, res) => {
     if (type === 'discount') typeFilter = "AND LTRIM(RTRIM(ID)) = 'PD'";
     if (type === 'birthday') typeFilter = "AND LTRIM(RTRIM(ID)) = 'SDB'";
 
-    const posPool = await getPosbackPool();
+    const posPool = req.shopPool; // ✅ POSBACK only
     const result  = await posPool.request()
       .input('sno',    sql.NVarChar, serialNo)
       .input('code',   sql.Char,     companyCode)
@@ -400,160 +362,12 @@ exports.getTransactions = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// getRewards
-// ─────────────────────────────────────────────────────────────────────────────
-exports.getRewards = async (req, res) => {
-  try {
-    const { companyCode, serialNo } = req.customer;
-    const loyPool = await getLoyaltyPool();
-    const posPool = await getPosbackPool();
-
-    const [rewardsRes, pointsRes] = await Promise.all([
-      loyPool.request()
-        .input('code', sql.NVarChar, companyCode)
-        .query(`
-          SELECT IDX, TITLE, DESCRIPTION, CATEGORY, POINTS_COST,
-                 ICON, IS_ACTIVE, VALID_FROM, VALID_UNTIL, STOCK
-          FROM dbo.tb_REWARDS
-          WHERE IS_ACTIVE = 1
-            AND COMPANY_CODE = @code
-            AND (VALID_FROM  IS NULL OR VALID_FROM  <= GETDATE())
-            AND (VALID_UNTIL IS NULL OR VALID_UNTIL >= GETDATE())
-            AND (STOCK IS NULL OR STOCK > 0)
-          ORDER BY POINTS_COST ASC
-        `),
-      getPointsSummary(posPool, serialNo, companyCode),
-    ]);
-
-    res.json({
-      success: true,
-      data: rewardsRes.recordset,
-      availablePoints: pointsRes.availablePoints,
-    });
-  } catch (err) {
-    console.error('[getRewards]', err.message);
-    res.status(500).json({ success: false, message: 'Server error.', error: err.message });
-  }
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// getMyRedemptions
-// ─────────────────────────────────────────────────────────────────────────────
-exports.getMyRedemptions = async (req, res) => {
-  try {
-    const { serialNo } = req.customer;
-    const loyPool = await getLoyaltyPool();
-    const result  = await loyPool.request()
-      .input('sno', sql.NVarChar, serialNo)
-      .query(`
-        SELECT r.IDX, r.REDEEMED_AT, r.POINTS_USED, r.STATUS,
-               rw.TITLE, rw.DESCRIPTION, rw.CATEGORY, rw.ICON
-        FROM dbo.tb_REDEMPTIONS r
-        JOIN dbo.tb_REWARDS rw ON rw.IDX = r.REWARD_ID
-        WHERE r.SERIAL_NO = @sno
-        ORDER BY r.REDEEMED_AT DESC
-      `);
-
-    res.json({ success: true, data: result.recordset });
-  } catch (err) {
-    console.error('[getMyRedemptions]', err.message);
-    res.status(500).json({ success: false, message: 'Server error.', error: err.message });
-  }
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// redeemReward
-// ─────────────────────────────────────────────────────────────────────────────
-exports.redeemReward = async (req, res) => {
-  try {
-    const { serialNo, companyCode, name } = req.customer;
-    const { reward_id } = req.body;
-
-    if (!reward_id)
-      return res.status(400).json({ success: false, message: 'reward_id required.' });
-
-    const loyPool = await getLoyaltyPool();
-    const posPool = await getPosbackPool();
-
-    const rwRes = await loyPool.request()
-      .input('rid',  sql.Int,      reward_id)
-      .input('code', sql.NVarChar, companyCode)
-      .query(`
-        SELECT TOP 1 IDX, TITLE, POINTS_COST, IS_ACTIVE, STOCK
-        FROM dbo.tb_REWARDS
-        WHERE IDX = @rid AND IS_ACTIVE = 1 AND COMPANY_CODE = @code
-      `);
-
-    if (!rwRes.recordset.length)
-      return res.status(404).json({ success: false, message: 'Reward not found.' });
-
-    const reward = rwRes.recordset[0];
-
-    if (reward.STOCK !== null && reward.STOCK <= 0)
-      return res.status(400).json({ success: false, message: 'Reward out of stock.' });
-
-    const points = await getPointsSummary(posPool, serialNo, companyCode);
-    if (points.availablePoints < reward.POINTS_COST) {
-      return res.status(400).json({
-        success: false,
-        message: `Not enough points. Need ${reward.POINTS_COST}, have ${points.availablePoints.toFixed(2)}.`,
-      });
-    }
-
-    const custRes = await posPool.request()
-      .input('sno',  sql.NVarChar, serialNo)
-      .input('code', sql.Char,     companyCode)
-      .query(`SELECT TOP 1 IDX FROM dbo.tb_LOYALTYCUSTOMER_MAIN WHERE SERIALNO = @sno AND COMPANY_CODE = @code`);
-
-    if (!custRes.recordset.length)
-      return res.status(404).json({ success: false, message: 'Customer not found.' });
-
-    const custIdx = custRes.recordset[0].IDX;
-
-    await loyPool.request()
-      .input('custId', sql.Int,   custIdx)
-      .input('rid',    sql.Int,   reward.IDX)
-      .input('pts',    sql.Float, reward.POINTS_COST)
-      .query(`
-        INSERT INTO dbo.tb_REDEMPTIONS (CUSTOMER_ID, REWARD_ID, POINTS_COST, STATUS, REDEEMED_AT)
-        VALUES (@custId, @rid, @pts, 'PENDING', GETDATE())
-      `);
-
-    if (reward.STOCK !== null) {
-      await loyPool.request()
-        .input('rid', sql.Int, reward.IDX)
-        .query(`UPDATE dbo.tb_REWARDS SET STOCK = STOCK - 1 WHERE IDX = @rid`);
-    }
-
-    await posPool.request()
-      .input('sno',  sql.NVarChar, serialNo)
-      .input('code', sql.Char,     companyCode)
-      .input('name', sql.NVarChar, name)
-      .input('rate', sql.Float,    reward.POINTS_COST)
-      .input('desc', sql.NVarChar, reward.TITLE)
-      .query(`
-        INSERT INTO dbo.tb_LOYALTY_TRANSACTION
-          (SERIALNO, COMPANY_CODE, CUSTOMER_NAME, ID, RATE, AMOUNT,
-           INVOICENO, INVOICE_DATE, INVOICE_TIME, SMS, LOYALTY_TYPE, CURRATE)
-        VALUES
-          (@sno, @code, @name, 'RM', @rate, 0, @desc,
-           GETDATE(), CONVERT(VARCHAR(8), GETDATE(), 108), 'T', '', 0)
-      `);
-
-    res.json({ success: true, message: `Redeemed: ${reward.TITLE}` });
-  } catch (err) {
-    console.error('[redeemReward]', err.message);
-    res.status(500).json({ success: false, message: 'Server error.', error: err.message });
-  }
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
 // getPromotions
 // ─────────────────────────────────────────────────────────────────────────────
 exports.getPromotions = async (req, res) => {
   try {
     const { companyCode } = req.customer;
-    const posPool = await getPosbackPool();
+    const posPool = req.shopPool; // ✅ POSBACK only
 
     const result = await posPool.request()
       .input('code', sql.Char, companyCode)

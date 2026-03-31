@@ -54,14 +54,6 @@ let posbackPool = null;
 // Dynamic pool cache — key: "ip:port"
 const shopPoolCache = {};
 
-const getLoyaltyPool = async () => {
-  if (!loyaltyPool) {
-    loyaltyPool = await new sql.ConnectionPool(loyaltyConfig).connect();
-    console.log('✅ RT_LOYALTY connected');
-  }
-  return loyaltyPool;
-};
-
 const getMasterPool = async () => {
   if (!masterPool) {
     masterPool = await new sql.ConnectionPool(masterConfig).connect();
@@ -109,4 +101,4 @@ const getShopPool = async (serverIp, portNo) => {
   }
 };
 
-module.exports = { getLoyaltyPool, getMasterPool, getPosbackPool, getShopPool, sql };
+module.exports = { getMasterPool, getPosbackPool, getShopPool, sql };

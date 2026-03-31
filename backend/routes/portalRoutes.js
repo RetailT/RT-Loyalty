@@ -1,10 +1,10 @@
 const express = require('express');
 const router  = express.Router();
 
-const { companyMiddleware }  = require('../middleware/companyMiddleware');
-const { portalProtect }      = require('../middleware/portalAuthMiddleware');
-const auth                   = require('../controllers/portalAuthController');
-const customer               = require('../controllers/portalCustomerController');
+const { companyMiddleware } = require('../middleware/companyMiddleware');
+const { portalProtect }     = require('../middleware/portalAuthMiddleware');
+const auth                  = require('../controllers/portalAuthController');
+const customer              = require('../controllers/portalCustomerController');
 
 // ── Company info (public) ─────────────────────────────────────────────────────
 router.get('/company', companyMiddleware, (req, res) => {
@@ -14,10 +14,10 @@ router.get('/company', companyMiddleware, (req, res) => {
     company: {
       code:           c.POSBACK_CODE,
       name:           c.COMPANY_NAME,
-      address:        c.CITY             || null,
-      phone:          c.PHONE            || null,
-      primaryColor:   c.PRIMARY_COLOR    || null,
-      secondaryColor: c.SECONDARY_COLOR  || null,
+      address:        c.CITY            || null,
+      phone:          c.PHONE           || null,
+      primaryColor:   c.PRIMARY_COLOR   || null,
+      secondaryColor: c.SECONDARY_COLOR || null,
     },
   });
 });
@@ -35,10 +35,12 @@ router.post('/auth/logout',     auth.logoutPortal);
 router.post('/register', customer.registerCustomer);
 
 // ── Customer (token required) ─────────────────────────────────────────────────
-router.get ('/me',           portalProtect, customer.getMe);
-router.put ('/me',           portalProtect, customer.updateMe);
-router.get ('/transactions', portalProtect, customer.getTransactions);
-router.get ('/company-info', portalProtect, (req, res) => {
+router.get('/me',           portalProtect, customer.getMe);
+router.put('/me',           portalProtect, customer.updateMe);
+router.get('/transactions', portalProtect, customer.getTransactions);
+router.get('/promotions',   portalProtect, customer.getPromotions);
+
+router.get('/company-info', portalProtect, (req, res) => {
   const c = req.company;
   res.json({
     success: true,
@@ -50,8 +52,8 @@ router.get ('/company-info', portalProtect, (req, res) => {
     },
   });
 });
-router.get ('/redemptions',  portalProtect, customer.getMyRedemptions);
-router.post('/redeem',       portalProtect, customer.redeemReward);
-router.get ('/promotions',   portalProtect, customer.getPromotions);
+
+// ── NOTE: /redemptions and /redeem routes removed ─────────────────────────────
+// Rewards/Redemption feature not in use. tb_REWARDS & tb_REDEMPTIONS
 
 module.exports = router;
