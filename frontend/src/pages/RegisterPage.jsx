@@ -434,7 +434,7 @@ export default function RegisterPage({ onNavigate }) {
             <Field
               label="Full Name" value={form.custFullName} required
               onChange={v => { set('custFullName')(v); clearErr('custFullName'); }}
-              placeholder="Full name"
+              placeholder="E.g. John Smith"
               error={errors.custFullName}
               fieldRef={refs.custFullName}
               {...shared}
